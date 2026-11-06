@@ -1,0 +1,37 @@
+source_id,document,url,source_kind,what_this_supports
+S01,Brooklyn Sail weather policy,https://www.bksail.com/details,Primary,Cancellation and refund terms; policy may change
+S02,Brooklyn Sail pricing,https://www.bksail.com/pricing,Primary,"Observed advertised booking prices, not net revenue/EBITDA"
+S03,Xentra Transport,https://www.xentratransport.com/,Primary,Service types and claimed no fuel surcharge; not fuel volume
+S04,Arborpolitan tree services,https://arborpolitan.com/tree-care,Primary,Routine care vs emergency post-storm
+S05,Manhattan Kayak,https://manhattankayak.com/,Primary,"Weather policies and seasonality, with reopening in 2027"
+S06,Foods of NY Tours FAQ,https://www.foodsofny.com/faq/,Primary,Tours rain or shine; rare unsafe-condition cancellation
+S07,Like A Local Tours FAQ,https://likealocaltours.com/faq,Primary,"Rain/snow/shine, reschedule in extreme weather"
+S08,Fancy Apple locations,https://fancyapple.com/our-locations/,Primary,Weather permitting language
+S09,NYC extreme rain,https://www.nyc.gov/content/climate/pages/extreme-rainfall,Government,NYC climate and flooding risks; no single business sensitivity established
+S10,NYC July 2025 extreme rain event,https://www.nyc.gov/site/em/about/press-releases/20250715_pr_nycem-City-Responds-To-Hstoric-Rainfall-Event.page,Government,Recorded 2.07 inches in one hour in Central Park
+S11,Kalshi hedging,https://kalshi.com/hedging,Kalshi,Public small business examples; excluded from presumed fresh prospect list
+S12,Kalshi public API markets,https://docs.kalshi.com/api-reference/market/get-markets,Kalshi Developer Docs,GET public market listing / market detail fields
+S13,Kalshi orderbook,https://docs.kalshi.com/api-reference/market/get-market-orderbook,Kalshi Developer Docs,"Bids, No bids complement math, liquidity not guaranteed"
+S14,Kalshi fees,https://kalshi.com/docs/kalshi-fee-schedule.pdf,Kalshi,"Fee schedule dated July 7 2026, general formula, category exceptions"
+S15,Rain weekly discovered Nov 7,https://kalshi.com/markets/kxrainwknd/where-will-it-rain-this-weekend/kxrainwknd-26nov07,Kalshi,"Dated market example, station-specific settlement"
+S16,Monthly NYC rain Nov 2026,https://kalshi.com/markets/kxrainnycm/monthly-rain-in-new-york/kxrainnycm-26nov,Kalshi,Monthly rain is not single-weekend extreme rain
+S17,Diesel price weekly Nov 9,https://kalshi.com/markets/kxdieselw/diesel-prices-this-week/kxdieselw-26nov09,Kalshi,"Weekly national diesel reference and threshold, verify AAA in rulebook"
+S18,WTI dated Nov 9,https://kalshi.com/markets/kxwti/wti-oil-on-day/kxwti-26nov0914,Kalshi,Crude price contract is not local diesel expense
+S19,EIA gas and diesel data,https://www.eia.gov/petroleum/gasdiesel/,US EIA,"Context for regional price dispersion, NOT same series as Kalshi diesel settlement"
+S20,City's 2025 flood impacts,https://www.nyc.gov/site/em/about/press-releases/20250801_pr_HELP-NYC-RESPOND-AND-RECOVER-REPORT-FLOOD-DAMAGE.page,Government,Geographically uneven rainfall and flood impacts
+S21,Native NYC Tour FAQ,https://www.thenativenyctour.com/the-native-nyc-tour/faqs,Primary,"Rain, snow, heat cancellation conditions"
+S22,Original NYC FAQ,https://www.originalnyc.io/faq,Primary,Weather rescheduling conditions; compare conflicting pages
+S23,Tribeca Sailing details,https://tribecasailing.com/details/,Primary,Weather cancellations and refund/credit details require latest confirmation
+S24,Go Sailing NYC,https://www.gosailingnyc.com/,Primary,Private vessel operator
+S25,Premier NYC couriers,https://www.premier-nyc.com/,Primary,Courier service and vehicle fleet to investigate
+S26,NYC 2026 heat impacts,https://a816-dohbesp.nyc.gov/IndicatorPublic/key-topics/climatehealth/heat-report/,Government,"Heat as real local issue, not direct financial sensitivity for companies"
+S27,NYC high temperatures,https://kalshi.com/markets/kxhighny,Kalshi,NYC daily temp market family
+S28,Circle Line Sightseeing Cruises company site,https://www.circleline.com/schedule,Primary,Company publishes 2026 New York Harbor cruise schedule and notes timetable may change in severe weather. Heated indoor lounges may mitigate ordinary rain.
+S29,New York Media Boat company site,https://www.nymediaboat.com/tours/,Primary,Company publishes paid NYC harbor adventure boat tours departing Chelsea Piers; private tours and voyage prices are advertised.
+S30,On Same Day Delivery company site,https://www.onsameday.com/contact-same-day-delivery-nyc,Primary,"Company states Queens dispatch office, routed tri-state deliveries and on-demand vehicle delivery services; fleet fuel mix unknown."
+S31,Nice Guy Tours company site,https://niceguytours.com/,Primary,"Company lists NYC walking food tours, 3-hour format and advertised booking prices; extreme-weather policy not confirmed."
+S32,Cycle Park NYC company site,https://cyclepark.nyc/,Primary,"Company markets Central Park bike rentals, premium cycling and e-scooter tours from Manhattan; weather cancellation policy not verified."
+S33,Unlimited Biking company site,https://unlimitedbiking.com/new-york/,Primary,Company advertises NYC Central Park and Brooklyn Bridge bicycle tours and rentals; seasonality and pricing listed.
+S34,Narwhal Yacht Charters company site,https://nycsailingcharters.com/,Primary,NYC charter operator advertises two-hour sailing charters from $560 and Chelsea Piers embarkation; weather refund policy not established.
+S35,Holland Bikes company site,https://tours-rentals.hollandbikes.com/en/bike-tours/new-york,Primary,"Company describes NYC cycle tours, multi-language guided groups and routes, with group sizes and prices advertised."
+S36,Bike Rent NYC company site,https://bikerent.nyc/,Primary,"Company advertises Central Park bike and e-scooter rentals, locations, tour options and public rental pricing."

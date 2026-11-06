@@ -1,0 +1,113 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #091019;
+  --color-navy: #101b28;
+  --color-navy-2: #16253a;
+  --color-mint: #84e5d0;
+  --color-copper: #f2ad78;
+  --color-chalk: #f7f6f0;
+  --color-steel: #8995a4;
+  --color-line: rgba(247, 246, 240, 0.12);
+  --font-display: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
+  --font-sans: var(--font-hanken), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, "SF Mono", monospace;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root { color-scheme: dark; }
+
+html { background: var(--color-ink); scroll-padding-top: 108px; }
+@media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+html.lenis, html.lenis body { height: auto; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+
+body {
+  background: var(--color-ink);
+  color: var(--color-chalk);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow-x: clip;
+}
+/* procedural film grain: static SVG noise, no animation, near-zero cost */
+body::after {
+  content: ""; position: fixed; inset: 0; pointer-events: none; z-index: 90; opacity: 0.05; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1  0 0 0 0 1  0 0 0 0 1  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+:focus-visible { outline: 2px solid var(--color-mint); outline-offset: 3px; border-radius: 2px; }
+::selection { background: var(--color-mint); color: var(--color-ink); }
+
+.font-display { font-family: var(--font-display); font-optical-sizing: auto; }
+.tnum { font-variant-numeric: tabular-nums; }
+
+/* hairline blueprint grid, decorative only, never under text at high contrast */
+.gridlines {
+  background-image:
+    linear-gradient(to right, rgba(247,246,240,0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(247,246,240,0.045) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+/* ---------- reveal (CSS-only; content stays visible without JS) ---------- */
+.js [data-reveal] {
+  opacity: 0; transform: translateY(20px);
+  transition: opacity 0.9s var(--ease-out-expo), transform 0.9s var(--ease-out-expo);
+  transition-delay: var(--d, 0ms);
+}
+.js [data-reveal].in { opacity: 1; transform: none; }
+
+/* ---------- hero choreography (pure CSS so it runs before hydration) ---------- */
+.mask-line { display: block; overflow: hidden; padding-bottom: 0.12em; margin-bottom: -0.12em; }
+.mask-line > span { display: block; animation: rise 1.25s var(--ease-out-expo) both; animation-delay: var(--d, 0ms); }
+@keyframes rise { from { transform: translateY(108%); } to { transform: none; } }
+.fade-up { animation: fadeup 1s var(--ease-out-expo) both; animation-delay: var(--d, 0ms); }
+@keyframes fadeup { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.curtain {
+  position: fixed; inset: 0; z-index: 100; background: var(--color-ink); pointer-events: none;
+  animation: curtain 1.05s 0.15s var(--ease-out-expo) both;
+}
+.curtain::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1px; background: var(--color-mint); opacity: 0.7; }
+@keyframes curtain { from { transform: none; } to { transform: translateY(-101%); } }
+.draw { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 2.4s var(--ease-out-expo) forwards; animation-delay: var(--d, 0ms); }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+.node-ring { transform-box: fill-box; transform-origin: center; animation: ring 3.6s ease-out infinite; animation-delay: var(--d, 0ms); }
+@keyframes ring { 0% { transform: scale(0.6); opacity: 0.7; } 70%, 100% { transform: scale(2.4); opacity: 0; } }
+.scroll-cue { animation: cue 2.4s ease-in-out infinite; }
+@keyframes cue { 0%, 100% { transform: translateY(0); opacity: 0.5; } 50% { transform: translateY(6px); opacity: 1; } }
+.pressure { transform-box: fill-box; transform-origin: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .curtain { display: none; }
+  .mask-line > span, .fade-up { animation: none; }
+  .draw { animation: none; stroke-dashoffset: 0; }
+  .node-ring, .scroll-cue { animation: none; }
+  .js [data-reveal] { opacity: 1; transform: none; transition: none; }
+  * { scroll-behavior: auto !important; }
+}
+
+/* striped pattern for unverified / directory records */
+.hatch { background-image: repeating-linear-gradient(135deg, rgba(242,173,120,0.35) 0 2px, transparent 2px 7px); }
+
+input[type="range"] { accent-color: var(--color-mint); height: 1.5rem; }
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+
+/* scroll-triggered line draws for diagrams (visible without JS) */
+.js [data-reveal] .dr { stroke-dasharray: 1; stroke-dashoffset: 1; transition: stroke-dashoffset 1.8s var(--ease-out-expo) 0.2s; }
+.js [data-reveal].in .dr { stroke-dashoffset: 0; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.orbit { transform-box: view-box; transform-origin: 100px 50px; animation: spin var(--t, 16s) linear infinite; }
+@media (prefers-reduced-motion: reduce) { .js [data-reveal] .dr { stroke-dashoffset: 0; transition: none; } .orbit { animation: none; } }
+.tip { animation: fadeup 0.2s ease-out both; }
+@media (prefers-reduced-motion: reduce) { .tip { animation: none; } }
+
+/* implicit grid tracks must never size to min-content (wide tables / fieldsets caused horizontal overflow on mobile) */
+@layer base { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+.bignum::before { content: attr(data-n); font-family: var(--font-display); font-size: 3.75rem; line-height: 1; color: rgba(247,246,240,0.15); display: block; }
+.bignum-lg::before { font-size: 4.5rem; }
+@media (min-width: 768px) { .bignum::before { font-size: 4.5rem; } .bignum-lg::before { font-size: 6rem; } }

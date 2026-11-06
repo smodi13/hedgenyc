@@ -1,0 +1,70 @@
+{
+  "as_of": "2026-11-06",
+  "warning": "NO LIVE ORDER BOOK, EXECUTABLE FILL, OR QUOTE HAS BEEN VALIDATED. These are dated documented market discoveries, not real-time pricing or recommendations. Fetch, verify exact resolution rules, and fail closed.",
+  "official_public_api": "https://external-api.kalshi.com/trade-api/v2/markets",
+  "official_api_docs": "https://docs.kalshi.com/api-reference/market/get-markets",
+  "orderbook_docs": "https://docs.kalshi.com/api-reference/market/get-market-orderbook",
+  "fee_schedule": "https://kalshi.com/docs/kalshi-fee-schedule.pdf",
+  "markets": [
+    {
+      "id": "KXRAINWKND-26NOV07-NYC",
+      "market_family": "KXRAINWKND",
+      "event": "Measurable rainfall in New York City during Nov 7-8, 2026",
+      "source_url": "https://kalshi.com/markets/kxrainwknd/where-will-it-rain-this-weekend/kxrainwknd-26nov07",
+      "settlement_proxy": "Source weather station / specified rainfall detection for listed market (verify full rules)",
+      "candidate_use": "Only business with loss tied to ANY measurable rain, not extreme-storm closures by default",
+      "basis_mismatch": "High for marine cancellations because a few drops do not imply unsafe sailing",
+      "status": "Historical-or-dated contract discovery; fetch actual status and prices before UI display",
+      "snapshot_price_usd": null,
+      "as_of": "2026-11-06"
+    },
+    {
+      "id": "KXRAINNYCM-26NOV-3",
+      "market_family": "KXRAINNYCM",
+      "event": "November monthly precipitation above specified threshold in NYC",
+      "source_url": "https://kalshi.com/markets/kxrainnycm/monthly-rain-in-new-york/kxrainnycm-26nov",
+      "settlement_proxy": "Monthly aggregate rain measured under market rules",
+      "candidate_use": "Only businesses sensitive to monthly aggregate rather than discrete cancellation episodes",
+      "basis_mismatch": "High for weekend reservation disruption or flooding at a specific borough",
+      "status": "Dated contract discovery; confirm exact strike, rules, liquidity",
+      "snapshot_price_usd": null,
+      "as_of": "2026-11-06"
+    },
+    {
+      "id": "KXDIESELW-26NOV09-T6.18",
+      "market_family": "KXDIESELW",
+      "event": "US diesel price above stated $6.18 threshold during week of Nov 9, 2026",
+      "source_url": "https://kalshi.com/markets/kxdieselw/diesel-prices-this-week/kxdieselw-26nov09",
+      "settlement_proxy": "Specified AAA nationwide diesel price feed; NOT directly EIA East Coast diesel price",
+      "candidate_use": "Fuel cost volatility for diesel-intensive fleets with uncapped customer pricing",
+      "basis_mismatch": "National AAA index versus actual NYC retail purchases, timing and gallons, plus passenger vehicles may use gasoline",
+      "status": "Dated contract discovery; verify exact market settlement and execution",
+      "snapshot_price_usd": null,
+      "as_of": "2026-11-06"
+    },
+    {
+      "id": "KXWTI-26NOV0914",
+      "market_family": "KXWTI",
+      "event": "WTI oil settlement around Nov 9, 2026",
+      "source_url": "https://kalshi.com/markets/kxwti/wti-oil-on-day/kxwti-26nov0914",
+      "settlement_proxy": "Oil-price contract governed by its own rulebook and specific reference price",
+      "candidate_use": "Possible secondary crude proxy for fuel expense (not preferred)",
+      "basis_mismatch": "WTI crude versus actual pump diesel prices, crack spread, state taxes, purchasing pattern",
+      "status": "Dated contract discovery; verify exact strike and availability",
+      "snapshot_price_usd": null,
+      "as_of": "2026-11-06"
+    },
+    {
+      "id": "KXHIGHNY",
+      "market_family": "KXHIGHNY",
+      "event": "NYC daily high-temperature family",
+      "source_url": "https://kalshi.com/markets/kxhighny",
+      "settlement_proxy": "Check specific station, units, strike and day for each contract",
+      "candidate_use": "Heat-exposure discovery only when cost or demand elasticity is documented",
+      "basis_mismatch": "Station high temperature may not align with heat index, location, or actual operating losses",
+      "status": "Family listing, not a single currently executable contract",
+      "snapshot_price_usd": null,
+      "as_of": "2026-11-06"
+    }
+  ]
+}

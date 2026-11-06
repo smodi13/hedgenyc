@@ -1,0 +1,292 @@
+{
+ "weights": {
+  "risk": 0.3,
+  "observability": 0.2,
+  "fit": 0.3,
+  "pilot": 0.2
+ },
+ "rows": {
+  "Brooklyn Sail": {
+   "risk": 5,
+   "observability": 4,
+   "fit": 2,
+   "pilot": 4
+  },
+  "Xentra Transport": {
+   "risk": 5,
+   "observability": 4,
+   "fit": 3,
+   "pilot": 4
+  },
+  "Arborpolitan": {
+   "risk": 5,
+   "observability": 4,
+   "fit": 0,
+   "pilot": 4
+  },
+  "The Native NYC Tour": {
+   "risk": 5,
+   "observability": 4,
+   "fit": 2,
+   "pilot": 4
+  },
+  "Original NYC": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 2,
+   "pilot": 4
+  },
+  "Tribeca Sailing": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 2,
+   "pilot": 4
+  },
+  "Manhattan Kayak": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 2,
+   "pilot": 2
+  },
+  "Brooklyn Giro": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Boroughs of the Dead": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Walk on the Wild Side NYC": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Go Sailing NYC": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 2,
+   "pilot": 4
+  },
+  "Classic Harbor Line": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Sailing Yacht Ventura": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 2,
+   "pilot": 2
+  },
+  "Metropolitan Garden Design": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Harrison Green": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Flo's Gardens": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "BK Bumpkin": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "NY Roofing": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 0,
+   "pilot": 2
+  },
+  "Roman Commercial Roofing": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 0,
+   "pilot": 2
+  },
+  "Premier Courier Services NYC": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 4
+  },
+  "Foods of NY Tours": {
+   "risk": 5,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Like A Local Tours": {
+   "risk": 5,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Fancy Apple": {
+   "risk": 5,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 4
+  },
+  "MUSEENYC": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Circle Line Sightseeing Cruises": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "New York Media Boat": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "NYC Water Cruises Pier 36": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "RDS Same Day Delivery": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "On Same Day Delivery": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Valkyrie Messenger Service": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Side by Side Roofing Contractors": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Dependable Lawn Care": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Admire Landscaping": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Atlantic Yachting - Tribeca": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Sailaway NY": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Narwhal Yacht Charters": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Private Yacht Tours NYC": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Greg Walks NYC": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Nice Guy Tours": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Tasty Tours NYC": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Unlimited Biking": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Cycle Park NYC": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Bike Rent NYC": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "Holland Bikes": {
+   "risk": 4,
+   "observability": 4,
+   "fit": 1,
+   "pilot": 2
+  },
+  "City Expeditor": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Anytime Errands": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  },
+  "Paragon Chimney and Roofing": {
+   "risk": 2,
+   "observability": 1,
+   "fit": 0,
+   "pilot": 1
+  }
+ }
+}

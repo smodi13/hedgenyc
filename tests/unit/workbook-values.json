@@ -1,0 +1,134 @@
+{
+ "sail": {
+  "loss": 330,
+  "price": 0.43,
+  "contracts": 250,
+  "coef": 0.07,
+  "premium": 107.5,
+  "fee": 4.29,
+  "cashAtRisk": 111.79,
+  "netYes": 138.20999999999998,
+  "netNo": -111.79,
+  "probTotal": 1,
+  "expectedUnhedged": -66,
+  "expectedHedged": -90.29,
+  "expectedIncremental": -24.290000000000006,
+  "basisMiss": 0.08,
+  "nonLoss": 0.23,
+  "worst": -441.79,
+  "states": [
+   [
+    0.12,
+    -330,
+    138.20999999999998,
+    -191.79000000000002
+   ],
+   [
+    0.08,
+    -330,
+    -111.79,
+    -441.79
+   ],
+   [
+    0.23,
+    0,
+    138.20999999999998,
+    138.20999999999998
+   ],
+   [
+    0.57,
+    0,
+    -111.79,
+    -111.79
+   ]
+  ]
+ },
+ "xentra": {
+  "loss": 480,
+  "price": 0.38,
+  "contracts": 350,
+  "coef": 0.07,
+  "premium": 133,
+  "fee": 5.78,
+  "cashAtRisk": 138.78,
+  "netYes": 211.22,
+  "netNo": -138.78,
+  "probTotal": 1,
+  "expectedUnhedged": -192,
+  "expectedHedged": -194.28,
+  "expectedIncremental": -2.280000000000001,
+  "basisMiss": 0.16,
+  "nonLoss": 0.15,
+  "worst": -618.78,
+  "states": [
+   [
+    0.24,
+    -480,
+    211.22,
+    -268.78
+   ],
+   [
+    0.16,
+    -480,
+    -138.78,
+    -618.78
+   ],
+   [
+    0.15,
+    0,
+    211.22,
+    211.22
+   ],
+   [
+    0.45,
+    0,
+    -138.78,
+    -138.78
+   ]
+  ]
+ },
+ "arbor": {
+  "loss": 0,
+  "price": 0.45,
+  "contracts": 0,
+  "coef": 0.07,
+  "premium": 0,
+  "fee": 0,
+  "cashAtRisk": 0,
+  "netYes": 0,
+  "netNo": 0,
+  "probTotal": 1,
+  "expectedUnhedged": 0,
+  "expectedHedged": 0,
+  "expectedIncremental": 0,
+  "basisMiss": 0.1,
+  "nonLoss": 0.3,
+  "worst": 0,
+  "states": [
+   [
+    0.2,
+    0,
+    0,
+    0
+   ],
+   [
+    0.1,
+    0,
+    0,
+    0
+   ],
+   [
+    0.3,
+    0,
+    0,
+    0
+   ],
+   [
+    0.4,
+    0,
+    0,
+    0
+   ]
+  ]
+ }
+}
