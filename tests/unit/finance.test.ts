@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import {
   computeHedge, contractEconomics, fuelLoss, rebalanceP00, sailLoss, stormAdverseLoss, stormNet, takerFee, type HedgeInputs,
@@ -157,5 +158,25 @@ describe("no inferred probability from price", () => {
     const b = computeHedge({ ...inputsFor("sail"), price: 0.8 });
     expect(a.expectedUnhedged).toBe(b.expectedUnhedged);
     expect(a.basisMissProbability).toBe(b.basisMissProbability);
+  });
+});
+
+describe("false positive / false negative terminology (regression)", () => {
+  const cases: [("sail" | "xentra" | "arbor"), number, number][] = [["sail", 0.23, 0.08], ["xentra", 0.15, 0.16], ["arbor", 0.3, 0.1]];
+  for (const [id, fp, fn] of cases) {
+    it(`${id}: false positive = P(no loss, contract pays); false negative = P(loss, no payout)`, () => {
+      const i = inputsFor(id);
+      const r = computeHedge(i);
+      expect(r.falsePositiveProbability).toBeCloseTo(fp, 10);
+      expect(r.falseNegativeProbability).toBeCloseTo(fn, 10);
+      expect(r.falsePositiveProbability).toBe(i.probs.p01);
+      expect(r.falseNegativeProbability).toBe(i.probs.p10);
+      expect(r.falseNegativeProbability).toBe(r.basisMissProbability);
+    });
+  }
+  it("the simulator source never labels the loss-without-payout state as a false positive", () => {
+    const src = readFileSync("src/components/simulator/Lab.tsx", "utf8");
+    expect(src).toMatch(/falsePositiveProbability!, 1\)\} \/ \$\{pct\(r\.falseNegativeProbability/);
+    expect(src).not.toMatch(/basisMissProbability!, 1\)\} \/ /);
   });
 });

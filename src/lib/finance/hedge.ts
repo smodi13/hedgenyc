@@ -65,6 +65,10 @@ export interface HedgeResult {
   expectedIncremental: number | null;
   basisMissProbability: number | null;
   nonLossPayoutProbability: number | null;
+  /** Contract pays although the business has no loss (p01). Positive = contract signal, negative = no business loss. */
+  falsePositiveProbability: number | null;
+  /** Business loses but the contract does not pay (p10): the basis miss. */
+  falseNegativeProbability: number | null;
   worstCombined: number | null;
   /** Combined outcome in the loss-but-contract-NO state */
   adverseNoPayoff: number | null;
@@ -130,7 +134,7 @@ export function computeHedge(i: HedgeInputs): HedgeResult {
   const empty: HedgeResult = {
     valid: false, errors, contract, states: null, probTotal,
     expectedUnhedged: null, expectedHedged: null, expectedIncremental: null,
-    basisMissProbability: null, nonLossPayoutProbability: null, worstCombined: null, adverseNoPayoff: null,
+    basisMissProbability: null, nonLossPayoutProbability: null, falsePositiveProbability: null, falseNegativeProbability: null, worstCombined: null, adverseNoPayoff: null,
   };
   if (!contract || !lossOk) return empty;
 
@@ -149,7 +153,7 @@ export function computeHedge(i: HedgeInputs): HedgeResult {
   return {
     valid: true, errors, contract, states, probTotal,
     expectedUnhedged, expectedHedged, expectedIncremental: expectedHedged - expectedUnhedged,
-    basisMissProbability: i.probs.p10, nonLossPayoutProbability: i.probs.p01, worstCombined, adverseNoPayoff,
+    basisMissProbability: i.probs.p10, nonLossPayoutProbability: i.probs.p01, falsePositiveProbability: i.probs.p01, falseNegativeProbability: i.probs.p10, worstCombined, adverseNoPayoff,
   };
 }
 

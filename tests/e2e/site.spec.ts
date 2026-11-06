@@ -187,7 +187,9 @@ test.describe("hedge lab", () => {
     await expect(tile(page, "m-ev")).toContainText("−$90.29");
     await expect(tile(page, "m-ev")).toContainText("incremental −$24.29");
     await expect(tile(page, "m-adverse")).toContainText("−$441.79");
-    await expect(tile(page, "m-basis")).toContainText("8.0% / 23.0%");
+    await expect(tile(page, "m-basis")).toContainText("23.0% / 8.0%");
+    await expect(tile(page, "m-basis")).toContainText("False positive: contract pays, no business loss");
+    await expect(tile(page, "m-basis")).toContainText("False negative: business loss, no payout");
     await expect(page.getByText("Loss + NO (basis miss)")).toBeVisible();
     await expect(page.getByRole("table", { name: /four joint states/i })).toBeVisible();
   });
@@ -231,8 +233,10 @@ test.describe("hedge lab", () => {
     await expect(tile(page, "m-loss")).toContainText("$480.00");
     await expect(tile(page, "m-cash")).toContainText("$138.78");
     await expect(tile(page, "m-adverse")).toContainText("−$618.78");
+    await expect(tile(page, "m-basis")).toContainText("15.0% / 16.0%");
     await page.locator("#lab").getByRole("button", { name: "Arborpolitan", exact: true, pressed: false }).click();
     await expect(tile(page, "m-loss")).toContainText("$0.00");
+    await expect(tile(page, "m-basis")).toContainText("30.0% / 10.0%");
     await expect(page.getByRole("note")).toContainText("Analyst pass");
     await page.getByLabel("Emergency margin earned", { exact: true }).fill("500");
     await expect(tile(page, "m-loss")).toContainText("$500.00");
@@ -305,6 +309,7 @@ test.describe("market feed", () => {
     await expect(page.getByTestId("price")).toHaveValue("0.2");
     await expect(page.getByText(/Price taken from an observed ask/)).toBeVisible();
     await expect(page.getByTestId("p11")).toHaveValue("24");
+    await expect(page.getByTestId("unverified-strike")).toContainText("UNVERIFIED CONTRACT SELECTION");
   });
 
   test("real server route returns well-formed JSON (live or unavailable)", async ({ request }) => {

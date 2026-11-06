@@ -135,6 +135,9 @@ export function Lab() {
                 Use observed YES ask {usd(obs.ask)} <span className="text-steel">({obs.ticker}, Kalshi public API, {fmtTime(obs.at)})</span>
               </button>
             )}
+            {obs && caseId === "xentra" && (
+              <p className="border border-copper/60 p-2 text-xs leading-snug text-copper" data-testid="unverified-strike">UNVERIFIED CONTRACT SELECTION: the analyst has not chosen a diesel strike or confirmed any contract as suitable. This shows one listed strike&rsquo;s ask only; it is not a recommendation or an executable quote.</p>
+            )}
             {s.src && <p className="text-xs leading-snug text-copper">Price taken from an observed ask on {fmtTime(s.src.at)}. A fill may differ, other fees may apply, and probabilities below are unchanged.</p>}
             <NumField testId="contracts" name="YES contracts" label={<Term term="contract payout">YES contracts</Term>} value={s.contracts} onChange={(v) => set({ contracts: v })} min={0} max={1000} step={10} badge="Illustrative" hint="Pays $1 per contract if YES; $0 otherwise." />
             <NumField testId="fee" label="General taker multiplier" value={s.feeCoef} onChange={(v) => set({ feeCoef: v })} min={0} max={0.2} step={0.005} badge="Kalshi general" hint="Fee = round-up-to-cent of m × N × p × (1 − p). Category and order-type schedules differ; verify before any transaction." />
@@ -168,7 +171,7 @@ export function Lab() {
             <Tile t="Business margin loss" v={usd(L)} sub="Contribution margin, not gross sales" tone="copper" id="m-loss" />
             <Tile t="Expected result · illustrative states" v={r.valid ? signedUsd(r.expectedHedged!) : "Blocked"} sub={r.valid ? `Unhedged ${signedUsd(r.expectedUnhedged!)} · incremental ${signedUsd(r.expectedIncremental!)}` : "Fix inputs to compute"} tone={r.valid ? (negIncr ? "copper" : "chalk") : "copper"} id="m-ev" />
             <Tile t="Contract loses; business loses" v={r.adverseNoPayoff !== null ? signedUsd(r.adverseNoPayoff) : "—"} sub={r.valid ? `${pct(r.basisMissProbability!, 1)} illustrative probability · basis miss` : "Loss + NO state"} tone="copper" id="m-adverse" />
-            <Tile t="False positive / negative" v={r.valid ? `${pct(r.basisMissProbability!, 1)} / ${pct(r.nonLossPayoutProbability!, 1)}` : "—"} sub="Loss but no payout / payout but no loss" id="m-basis" />
+            <Tile t="False positive / false negative" v={r.valid ? `${pct(r.falsePositiveProbability!, 1)} / ${pct(r.falseNegativeProbability!, 1)}` : "—"} sub="False positive: contract pays, no business loss. False negative: business loss, no payout." id="m-basis" />
           </dl>
           {r.valid && negIncr && <p className="border-l-2 border-copper pl-4 text-sm text-chalk/85">Under these illustrative states the hedge&rsquo;s expected incremental result is negative ({signedUsd(r.expectedIncremental!)}). It is shown as computed; the lab does not recommend a hedge.</p>}
           {r.states && r.valid && <p className="text-sm text-chalk/80">Worst modeled combined outcome: <strong className="tnum font-mono text-copper">{signedUsd(r.worstCombined!)}</strong>. Premium plus fee ({usd(r.contract!.cashAtRisk)}) can be lost in full even when the business loses money.</p>}
