@@ -42,7 +42,7 @@ export function CitySvg({ L, animated }: { L: SceneLayers; animated: boolean }) 
       <motion.g style={{ y: L.grid, x: L.gx }} mask="url(#gridmask)">
         <g stroke="#f7f6f0" strokeOpacity="0.07" strokeWidth="1" fill="none" vectorEffect="non-scaling-stroke">
           {G.avenues.map((d, i) => <path key={`a${i}`} d={d} pathLength={1} className="draw" style={{ ["--d" as string]: `${200 + i * 40}ms` }} />)}
-          {G.streets.map((d, i) => <path key={`s${i}`} d={d} pathLength={1} className="draw" style={{ ["--d" as string]: `${500 + i * 25}ms` }} />)}
+          {G.streets.map((d, i) => <path className="g-streets draw" key={`s${i}`} d={d} pathLength={1} style={{ ["--d" as string]: `${500 + i * 25}ms` }} />)}
         </g>
         <path d={G.broadway} fill="none" stroke="#84e5d0" strokeOpacity="0.16" strokeWidth="1" pathLength={1} className="draw" style={{ ["--d" as string]: "900ms" }} />
       </motion.g>
@@ -104,7 +104,7 @@ export function CitySvg({ L, animated }: { L: SceneLayers; animated: boolean }) 
 
       {/* risk-pressure wave: sweeps the city on scroll */}
       <motion.circle cx={N.business.x} cy={N.business.y} r="260" fill="none" stroke="#f2ad78" strokeWidth="1.2" className="pressure" style={{ scale: L.pressure, opacity: L.pressureOp }} />
-      <motion.circle cx={N.business.x} cy={N.business.y} r="260" fill="none" stroke="#84e5d0" strokeWidth="0.8" className="pressure" style={{ scale: L.pressure, opacity: L.pressureOp, rotate: 0 }} filter="url(#soft)" />
+      <motion.circle cx={N.business.x} cy={N.business.y} r="260" fill="none" stroke="#84e5d0" strokeWidth="0.8" style={{ scale: L.pressure, opacity: L.pressureOp }} className="pressure g-soft" />
     </svg>
   );
 }

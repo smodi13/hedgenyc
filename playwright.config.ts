@@ -8,8 +8,8 @@ export default defineConfig({
   fullyParallel: true,
   retries: 0,
   reporter: [["list"], ["json", { outputFile: "test-results/e2e.json" }]],
-  use: { baseURL: "http://localhost:3100", trace: "off" },
-  webServer: {
+  use: { baseURL: process.env.PW_BASE_URL ?? "http://localhost:3100", trace: "off" },
+  webServer: process.env.PW_BASE_URL ? undefined : {
     command: "npm run build && npx next start -p 3100",
     url: "http://localhost:3100",
     reuseExistingServer: true,
