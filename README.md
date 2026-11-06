@@ -50,4 +50,4 @@ The Vercel project `hedgenyc` is connected to this repository. Pushes to `main` 
 - **False positive** = contract pays but there is no business loss; **false negative** = business loses but the contract does not pay (basis miss).
 - Fees use the general taker formula only; category and order-type schedules differ. Spread, partial fills and slippage are not modelled. Premium plus fees can be lost in full.
 - Market records are dated discoveries (Nov 2026). Live API fields are shown with fetch times but are not offers or recommendations.
-- **Open analyst question:** which diesel strike (if any) suits Xentra Transport. It is unresolved and labelled unverified on the site. See `engineering/implementation-open-items.md`.
+- **Xentra:** analyst review concluded no suitable hedge has been validated (AAA diesel benchmark vs local spend, unknown fleet mix, single-date observation). The listed diesel contract appears only as an unselected market example; further operating diligence would be required.

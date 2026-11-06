@@ -28,7 +28,8 @@ const initial = (id: CaseId): LabState => {
 const derivedLoss = (id: CaseId, d: Record<string, number>) =>
   id === "sail" ? sailLoss(d.booking!, d.avoidable! / 100, d.canceled!) : id === "xentra" ? fuelLoss(d.gallons!, d.shock!, d.pass! / 100) : stormAdverseLoss(d.scheduled!, d.emergency!);
 
-const OBSERVED: Partial<Record<CaseId, string>> = { sail: "KXRAINWKND-26NOV07-NYC", xentra: "KXDIESELW-26NOV09-T6.18" };
+// Xentra deliberately has no observed-ask: analyst review found no suitable contract (AAA benchmark, mixed fleet, single-date observation).
+const OBSERVED: Partial<Record<CaseId, string>> = { sail: "KXRAINWKND-26NOV07-NYC" };
 
 function useDebounced<T>(v: T, ms: number) {
   const [x, setX] = useState(v);
@@ -135,8 +136,8 @@ export function Lab() {
                 Use observed YES ask {usd(obs.ask)} <span className="text-steel">({obs.ticker}, Kalshi public API, {fmtTime(obs.at)})</span>
               </button>
             )}
-            {obs && caseId === "xentra" && (
-              <p className="border border-copper/60 p-2 text-xs leading-snug text-copper" data-testid="unverified-strike">UNVERIFIED CONTRACT SELECTION: the analyst has not chosen a diesel strike or confirmed any contract as suitable. This shows one listed strike&rsquo;s ask only; it is not a recommendation or an executable quote.</p>
+            {caseId === "xentra" && (
+              <p className="border border-copper/60 p-2 text-xs leading-snug text-copper" data-testid="xentra-no-hedge">NO SUITABLE XENTRA HEDGE VALIDATED. The price above is an illustrative assumption, not a quote. The listed diesel contract settles on a national AAA benchmark, Xentra&rsquo;s gasoline/diesel mix is unknown, and a single-date observation does not cover ongoing fuel expense. Further operating diligence is required.</p>
             )}
             {s.src && <p className="text-xs leading-snug text-copper">Price taken from an observed ask on {fmtTime(s.src.at)}. A fill may differ, other fees may apply, and probabilities below are unchanged.</p>}
             <NumField testId="contracts" name="YES contracts" label={<Term term="contract payout">YES contracts</Term>} value={s.contracts} onChange={(v) => set({ contracts: v })} min={0} max={1000} step={10} badge="Illustrative" hint="Pays $1 per contract if YES; $0 otherwise." />

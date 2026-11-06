@@ -77,3 +77,15 @@ describe("downloads are byte-identical to the supplied research", () => {
     });
   }
 });
+
+describe("Xentra presentation (analyst: no suitable hedge validated)", () => {
+  it("Hedge Lab has no observed-ask mapping for Xentra or any diesel strike", () => {
+    const src = readFileSync("src/components/simulator/Lab.tsx", "utf8");
+    expect(src).not.toMatch(/xentra:\s*"KX/);
+    expect(src).not.toContain("T6.18");
+    expect(src).toContain("NO SUITABLE XENTRA HEDGE VALIDATED");
+  });
+  it("the diesel contract remains in the market research records as a dated discovery", () => {
+    expect(marketsFile.markets.some((m) => m.id === "KXDIESELW-26NOV09-T6.18")).toBe(true);
+  });
+});

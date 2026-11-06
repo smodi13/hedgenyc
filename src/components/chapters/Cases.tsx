@@ -93,7 +93,7 @@ function Panel({ c }: { c: CaseStudy }) {
         <div>
           <H>{c.id === "arbor" ? "Unmatched contract" : "Matched contract (dated discovery, not verified live)"}</H>
           <p className="leading-relaxed text-chalk/85">{c.matched}</p>
-          {c.id === "xentra" && <p className="mt-3 border border-copper/60 p-3 text-sm text-copper">Unverified: the specific diesel strike (and whether any listed contract is suitable) is an open analyst question. None is selected here.</p>}
+          {c.id === "xentra" && <p className="mt-3 border border-copper/60 p-3 text-sm text-copper">Not selected: analyst review found no suitable Xentra hedge. The diesel contract is shown as an unselected market example only (AAA national benchmark, unknown gasoline/diesel mix, single-date observation). Further operating diligence would be required.</p>}
           {c.matchedSources.length > 0 && <ul className="mt-3 flex flex-wrap gap-x-5 gap-y-1">{c.matchedSources.map((s) => <li key={s.url}><Ext href={s.url}>{s.label}</Ext></li>)}</ul>}
         </div>
         <div className="border-l-2 border-copper pl-5">

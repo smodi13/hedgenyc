@@ -298,18 +298,19 @@ test.describe("market feed", () => {
     await expect(mf).toContainText("2026-11-06 18:00 UTC");
   });
 
-  test("observed ask is opt-in and never silently replaces illustrative price", async ({ page }) => {
+  test("Sail observed ask is opt-in; Xentra never shows an observed ask or executable quote", async ({ page }) => {
     await page.route("**/api/market-snapshot", (r) => r.fulfill({ json: mockSnap() }));
     await gotoHome(page);
+    await expect(page.getByTestId("price")).toHaveValue("0.43");
     await page.locator("#lab").getByRole("button", { name: "Xentra Transport", exact: true, pressed: false }).click();
     await expect(page.getByTestId("price")).toHaveValue("0.38");
-    const btn = page.getByRole("button", { name: /Use observed YES ask \$0\.20/ });
-    await expect(btn).toBeVisible();
-    await btn.click();
-    await expect(page.getByTestId("price")).toHaveValue("0.2");
-    await expect(page.getByText(/Price taken from an observed ask/)).toBeVisible();
-    await expect(page.getByTestId("p11")).toHaveValue("24");
-    await expect(page.getByTestId("unverified-strike")).toContainText("UNVERIFIED CONTRACT SELECTION");
+    await expect(page.getByRole("button", { name: /Use observed YES ask/ })).toHaveCount(0);
+    await expect(page.getByTestId("xentra-no-hedge")).toContainText("NO SUITABLE XENTRA HEDGE VALIDATED");
+    await expect(page.getByTestId("xentra-no-hedge")).toContainText("operating diligence");
+    await expect(page.getByTestId("price")).toHaveValue("0.38");
+    await expect(page.getByTestId("m-cash")).toContainText("$138.78");
+    await page.locator("#lab").getByRole("button", { name: "Brooklyn Sail", exact: true }).click();
+    await expect(page.getByRole("button", { name: /Use observed YES ask \$0\.23|Use observed YES ask/ })).toHaveCount(0); // mock has no Sail active market
   });
 
   test("real server route returns well-formed JSON (live or unavailable)", async ({ request }) => {
