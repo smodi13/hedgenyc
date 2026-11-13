@@ -152,7 +152,8 @@ export interface OptResult {
 type Objective = "variance" | "cvar" | "target";
 
 export const NO_FEASIBLE = "No feasible hedge under current assumptions.";
-export const NEED_LIMITS = "Enter a maximum hedge spend and a maximum acceptable trading loss. Without an owner risk budget no personalized allocation is produced.";
+export const NEED_LIMITS = "Enter a maximum hedge spend. Without an owner-entered budget no personalized allocation is produced.";
+export const NEED_INFO = "More information is needed to estimate a personalized risk-reducing hedge.";
 
 export const OBJECTIVE_TEXT: Record<Objective, { name: string; math: string }> = {
   variance: { name: "Minimize variability", math: "Chooses the whole-contract quantity (zero included) that minimizes the variance of combined business + trading P&L under your modeled probability distribution." },
@@ -177,8 +178,8 @@ export function optimize(objective: Objective, x: Ctx, target: number): OptResul
   const mk = (c: number, status: OptResult["status"], beats: boolean, why: string, required: Position | null = null): OptResult =>
     ({ objective, status, position: evaluate(c, x), baseline: base, required, beatsZero: beats, why });
   const B = lim(x.budget), M = lim(x.maxTradingLoss);
-  if (objective !== "target" && !x.dist) return mk(0, "insufficient", false, "Insufficient information for a personalized optimal hedge estimate.");
-  if (B === null || M === null) return mk(0, "insufficient", false, NEED_LIMITS);
+  if (objective !== "target" && !x.dist) return mk(0, "insufficient", false, NEED_INFO);
+  if (B === null) return mk(0, "insufficient", false, NEED_LIMITS);
 
   if (objective === "target") {
     const c = minContractsFor([target], x.table)[0] ?? null;
@@ -189,7 +190,7 @@ export function optimize(objective: Objective, x: Ctx, target: number): OptResul
     return mk(c, "ok", true, `Smallest whole-contract position whose net winning profit is at least ${usd(target)}. This is target sizing, not an expected-value claim.`, p);
   }
 
-  const d = x.dist as DistRow[], t = x.table, cap = Math.min(B, M);
+  const d = x.dist as DistRow[], t = x.table, cap = Math.min(B, M ?? Infinity);
   const score = (c: number) => (objective === "variance" ? varianceOf(pnl(c, t, d)) : cvarOf(pnl(c, t, d)));
   let bestC = 0, best = score(0), feasibleCount = 0;
   for (let c = 1; c <= t.max; c++) {
@@ -222,4 +223,22 @@ export function sweep(x: Ctx, steps = 100): ChartPoint[] {
     const o = outcomesFor(c, x.loss, x.table), xs = x.dist ? pnl(c, x.table, x.dist) : null;
     return { pct, contracts: c, cost: costAt(x.table, c), ifPays: o.lossPays, ifNotPays: o.lossLoses, expected: xs ? meanOf(xs) : null, cvarChange: xs && base !== null ? cvarOf(xs) - base : null };
   });
+}
+
+/**
+ * Mode A: the largest whole-contract quantity inside every owner limit (spend, max trading loss, position limit, coverage cap, depth).
+ * Costs rise with size, so the first breach ends the scan. `binding` names the limit that stopped it.
+ */
+export function maxAffordable(x: Ctx): { contracts: number; binding: "budget" | "loss" | "position" | "coverage" | "depth" | "ceiling" } {
+  const B = lim(x.budget) ?? Infinity, M = lim(x.maxTradingLoss) ?? Infinity, t = x.table;
+  let c = 0, binding: ReturnType<typeof maxAffordable>["binding"] = t.max >= CEILING ? "ceiling" : "depth";
+  for (let n = 1; n <= t.max; n++) {
+    const k = costAt(t, n);
+    if (k > B + 1e-9) { binding = "budget"; break; }
+    if (k > M + 1e-9) { binding = "loss"; break; }
+    if (x.positionLimit > 0 && n > x.positionLimit) { binding = "position"; break; }
+    if (netWin(n, t) > x.maxCoverage * x.loss + 1e-9) { binding = "coverage"; break; }
+    c = n;
+  }
+  return { contracts: c, binding };
 }

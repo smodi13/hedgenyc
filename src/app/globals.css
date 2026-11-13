@@ -124,8 +124,9 @@ details > summary::-webkit-details-marker { display: none; }
 }
 .chart-path { transition: d 0.3s var(--ease-out-expo); }
 .bar-fill { transition: width 0.45s var(--ease-out-expo); }
+.bar-grow { transition: y 0.45s var(--ease-out-expo), height 0.45s var(--ease-out-expo); }
 @media (prefers-reduced-motion: reduce) {
-  .chart-path, .bar-fill, .lift, .glow::before { transition: none !important; }
+  .chart-path, .bar-fill, .bar-grow, .lift, .glow::before { transition: none !important; }
   .fade-up { animation: none; }
   .js [data-reveal] { opacity: 1; transform: none; transition: none; }
 }
@@ -138,3 +139,8 @@ details > summary::-webkit-details-marker { display: none; }
   .print-only .sec { break-inside: avoid; }
   main { padding: 0 !important; }
 }
+
+/* Owner Call Mode: larger type and inputs for screen sharing; technical blocks hidden */
+.call-mode { font-size: 112%; }
+.call-mode input[type="text"], .call-mode select { font-size: 1.15rem; padding-top: 0.7rem; padding-bottom: 0.7rem; }
+.call-mode .call-hide { display: none; }
