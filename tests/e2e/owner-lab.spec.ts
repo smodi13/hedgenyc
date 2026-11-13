@@ -22,8 +22,8 @@ test.describe("owner lab", () => {
     await expect(page.getByTestId("disclaimer")).toHaveText("Independent research tool. Not affiliated with or endorsed by Kalshi. No trading functionality.");
     await expect(page.getByTestId("out-loss")).toHaveAttribute("data-value", "1200");
     await expect(page.getByTestId("out-contracts")).toHaveAttribute("data-value", "391");
-    await expect(page.getByTestId("out-cash")).toHaveAttribute("data-value", "90.72");
-    await expect(page.getByTestId("out-netwin")).toHaveAttribute("data-value", "300.28");
+    expect(Number(await v(page, "out-cash"))).toBeCloseTo(90.7167, 4);
+    expect(Number(await v(page, "out-netwin"))).toBeCloseTo(300.2833, 4);
     await expect(page.getByText("Recruit", { exact: false })).toHaveCount(0);
   });
 
@@ -61,10 +61,10 @@ test.describe("owner lab", () => {
     await expect(page.getByTestId("d-fee")).toHaveAttribute("data-value", /./).catch(() => {});
     await expect(page.getByTestId("d-fee")).toHaveText("$4.70");
     await expect(page.getByTestId("d-principal")).toHaveText("$86.02");
-    await expect(page.getByTestId("out-A")).toHaveAttribute("data-value", "-899.72");
-    await expect(page.getByTestId("out-B")).toHaveAttribute("data-value", "-1290.72");
-    await expect(page.getByTestId("out-C")).toHaveAttribute("data-value", "300.28");
-    await expect(page.getByTestId("out-D")).toHaveAttribute("data-value", "-90.72");
+    expect(Number(await v(page, "out-A"))).toBeCloseTo(-899.7167, 4);
+    expect(Number(await v(page, "out-B"))).toBeCloseTo(-1290.7167, 4);
+    expect(Number(await v(page, "out-C"))).toBeCloseTo(300.2833, 4);
+    expect(Number(await v(page, "out-D"))).toBeCloseTo(-90.7167, 4);
     await expect(page.getByRole("heading", { name: "Market suitability checklist" })).toBeVisible();
     await page.getByRole("button", { name: "Quick view" }).click();
     await expect(page.getByRole("heading", { name: "Four joint outcomes" })).toHaveCount(0);
@@ -77,8 +77,7 @@ test.describe("owner lab", () => {
     await expect(page.getByTestId("opt-insufficient")).toContainText("Insufficient information for a personalized optimal hedge estimate.");
     await expect(page.getByTestId("cmp-opt")).toHaveAttribute("data-highlight", "false");
     await page.getByTestId("load-illustrative").click();
-    await page.getByRole("button", { name: "Low (risk-averse)" }).click();
-    await setNum(page, "in-budget", "500"); await setNum(page, "in-maxloss", "500");
+        await setNum(page, "in-budget", "500"); await setNum(page, "in-maxloss", "500");
     await expect(page.getByTestId("opt-insufficient")).toHaveCount(0);
     await expect(page.getByTestId("opt-objective")).toHaveText("Minimize variability");
     expect(Number(await v(page, "opt-contracts"))).toBeGreaterThan(0);
@@ -88,6 +87,71 @@ test.describe("owner lab", () => {
     for (const [id, val] of [["lossPays", "0"], ["lossLoses", "30"], ["noLossPays", "0"], ["noLossLoses", "70"]] as [string, string][]) await setNum(page, `prob-${id}`, val);
     await expect(page.getByTestId("opt-contracts")).toHaveAttribute("data-value", "0");
     await expect(page.getByTestId("opt-why")).toContainText("buy zero contracts");
+  });
+
+  test("sizing result card: 37-cent price with a $150 budget is infeasible", async ({ page }) => {
+    await open(page);
+    await expect(page.getByTestId("sizing-label")).toHaveText("Illustrative hedge sizing");
+    await expect(page.getByTestId("sz-fits")).toHaveText("Not entered");
+    await setNum(page, "in-price", "0.37");
+    await setNum(page, "in-budget", "150"); await setNum(page, "in-maxloss", "150");
+    await expect(page.getByTestId("sz-qty")).toContainText("None within your limits (target needs 489)");
+    await expect(page.getByTestId("sz-fits")).toHaveText("No");
+    await expect(page.getByTestId("sz-exec")).toHaveText("Illustrative price, not verified");
+    await expect(page.getByTestId("sz-probs")).toHaveText("None entered");
+    await page.getByTestId("find-hedge").click();
+    await expect(page.getByTestId("opt-infeasible")).toContainText("No feasible hedge under current assumptions.");
+    await expect(page.getByTestId("opt-infeasible")).toContainText("489 contracts");
+    await setNum(page, "in-budget", "200"); await setNum(page, "in-maxloss", "200");
+    await expect(page.getByTestId("opt-contracts")).toHaveAttribute("data-value", "489");
+  });
+
+  test("no risk budget entered: no personalized allocation", async ({ page }) => {
+    await open(page);
+    await page.getByTestId("find-hedge").click();
+    await expect(page.getByTestId("opt-insufficient")).toContainText("risk budget");
+  });
+
+  test("probability-based label and derived statistics", async ({ page }) => {
+    await open(page);
+    await page.getByLabel(/Minimize variability/).check();
+    await setNum(page, "in-budget", "500"); await setNum(page, "in-maxloss", "500");
+    for (const [id, val] of [["lossPays", "20"], ["lossLoses", "10"], ["noLossPays", "10"], ["noLossLoses", "60"]] as [string, string][]) await setNum(page, `prob-${id}`, val);
+    await expect(page.getByTestId("stat-loss")).toContainText("30.0%");
+    await expect(page.getByTestId("stat-payout")).toContainText("30.0%");
+    await expect(page.getByTestId("stat-miss")).toContainText("10.0%");
+    await expect(page.getByTestId("stat-cond")).toContainText("66.7%");
+    await page.getByTestId("find-hedge").click();
+    await expect(page.getByTestId("basis-label")).toContainText("Probability-based optimization");
+    await expect(page.getByTestId("opt-exceeds")).toContainText("Winning payout");
+    await page.getByLabel(/Target protection at minimum cost/).check();
+    await expect(page.getByTestId("basis-label")).toContainText("Illustrative hedge sizing");
+  });
+
+  test("multiple loss levels model", async ({ page }) => {
+    await open(page);
+    await page.getByRole("button", { name: "Loss levels" }).click();
+    await expect(page.getByTestId("loss-rows")).toBeVisible();
+    await expect(page.getByText("Severe revenue shortfall")).toBeVisible();
+    await page.getByTestId("load-illustrative").click();
+    await expect(page.getByTestId("prob-status")).toContainText("Sum 100%");
+    await setNum(page, "row-0-pays", "50");
+    await expect(page.getByTestId("prob-error")).toContainText("sum to");
+    await page.getByRole("button", { name: "Four-state" }).click();
+    await expect(page.getByRole("heading", { name: "Simplified four-state model" })).toBeVisible();
+  });
+
+  test("Asset Operations Group is per-push with a cited source; generic company can enter seasonal revenue", async ({ page }) => {
+    await open(page);
+    await expect(page.getByRole("link", { name: /Source/ })).toHaveAttribute("href", "https://assetoperationsgroup.com/chicagoland-snow-plowing-ice-management");
+    await page.getByRole("button", { name: "Detailed view" }).click();
+    await page.getByRole("button", { name: "Cost build-up" }).click();
+    await expect(page.getByText("per push only. No seasonal snow contracts are assumed")).toBeVisible();
+    await expect(page.getByLabel(/seasonal snow contracts/)).toHaveCount(0);
+    await page.getByRole("button", { name: "+ New business" }).click();
+    await page.getByRole("button", { name: "Cost build-up" }).click();
+    await page.getByLabel(/This company has seasonal snow contracts/).check();
+    await expect(page.getByText("Enter the actual contractual amount")).toBeVisible();
   });
 
   test("probability validation", async ({ page }) => {

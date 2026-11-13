@@ -1,9 +1,9 @@
 /**
  * Position sizing, outcomes, optimizer. Pure and deterministic; nothing here is hardcoded to a result.
- * Orders are whole contracts of the NO side, multiplier 1. Fee = ROUNDUP(0.07 * q * p * (1-p), cents) per price level filled.
+ * Orders are whole contracts of the NO side, multiplier 1.
+ * Fee: round_up(M * 0.07 * C * P * (1 - P)); fee + position cost rounded up to a centicent ($0.0001).
  */
-import { takerFee } from "../finance/hedge";
-import { cents, FEE_COEF, TOLERANCE_CAP, type JointProbs, type Objective, type Tolerance } from "./model";
+import { FEE_COEF, FEE_PRECISION, type DistRow } from "./model";
 
 /** Search ceiling: no more than this many contracts are ever evaluated. */
 export const CEILING = 50_000;
@@ -12,33 +12,40 @@ export interface Level { price: number; size: number }
 /** NO ask ladder, ascending price. null = illustrative single price with unlimited depth. */
 export type Ladder = Level[] | null;
 
+const r4 = (x: number) => Math.round(x * FEE_PRECISION) / FEE_PRECISION;
+/** Round UP to a centicent; the epsilon absorbs binary-float noise on exact centicents. */
+export const ceilCenticent = (x: number) => Math.ceil(x * FEE_PRECISION - 1e-6) / FEE_PRECISION;
+export const rawFee = (qty: number, price: number, mult: number) => (qty <= 0 || mult <= 0 ? 0 : mult * FEE_COEF * qty * price * (1 - price));
+
 export interface Fill { premium: number; fee: number; cost: number; avgPrice: number | null; filled: number; complete: boolean; levels: { price: number; qty: number }[] }
 
-export function fillOrder(qty: number, price: number, ladder: Ladder): Fill {
+/** Walk the book: fee formula applied to each execution quantity, one centicent round-up on (premium + fees). */
+export function fillOrder(qty: number, price: number, ladder: Ladder, mult = 1): Fill {
   if (qty <= 0) return { premium: 0, fee: 0, cost: 0, avgPrice: null, filled: 0, complete: true, levels: [] };
   const levels: { price: number; qty: number }[] = [];
   let left = qty;
   if (ladder === null) levels.push({ price, qty });
   else for (const l of ladder) { if (left <= 0) break; const q = Math.min(left, l.size); if (q > 0) { levels.push({ price: l.price, qty: q }); left -= q; } }
   const filled = levels.reduce((a, l) => a + l.qty, 0);
-  const premium = cents(levels.reduce((a, l) => a + l.qty * l.price, 0));
-  const fee = cents(levels.reduce((a, l) => a + takerFee(l.qty, l.price, FEE_COEF), 0));
-  return { premium, fee, cost: cents(premium + fee), avgPrice: filled ? premium / filled : null, filled, complete: filled === qty, levels };
+  const premium = r4(levels.reduce((a, l) => a + l.qty * l.price, 0));
+  const fees = levels.reduce((a, l) => a + rawFee(l.qty, l.price, mult), 0);
+  const cost = ceilCenticent(premium + fees);
+  return { premium, fee: r4(cost - premium), cost, avgPrice: filled ? premium / filled : null, filled, complete: filled === qty, levels };
 }
 
-export interface CostTable { cost: Float64Array; max: number; ladder: Ladder; price: number }
+export interface CostTable { cost: Float64Array; max: number; ladder: Ladder; price: number; mult: number }
 
-/** cost[C] = total entry cost for C contracts. Built once per price/ladder; everything else is lookups. */
-export function buildCostTable(price: number, ladder: Ladder): CostTable {
+/** cost[C] = total entry cost for C contracts. Built once per price/ladder/multiplier; everything else is lookups. */
+export function buildCostTable(price: number, ladder: Ladder, mult = 1): CostTable {
   const depth = ladder ? ladder.reduce((a, l) => a + l.size, 0) : Infinity;
   const max = Math.max(0, Math.min(CEILING, depth));
   const cost = new Float64Array(max + 1);
-  for (let c = 1; c <= max; c++) cost[c] = fillOrder(c, price, ladder).cost;
-  return { cost, max, ladder, price };
+  for (let c = 1; c <= max; c++) cost[c] = fillOrder(c, price, ladder, mult).cost;
+  return { cost, max, ladder, price, mult };
 }
 
 const costAt = (t: CostTable, c: number) => t.cost[c] as number;
-export const netWin = (c: number, t: CostTable) => cents(c - costAt(t, c));
+export const netWin = (c: number, t: CostTable) => r4(c - costAt(t, c));
 
 /** Smallest integer C whose net winning profit >= each target; null when unreachable within the table. Targets ascending. */
 export function minContractsFor(targets: number[], t: CostTable): (number | null)[] {
@@ -55,24 +62,38 @@ export interface Outcomes { lossPays: number; lossLoses: number; noLossPays: num
 
 export function outcomesFor(c: number, loss: number, t: CostTable): Outcomes {
   const w = netWin(c, t), k = costAt(t, c);
-  return { lossPays: cents(-loss + w), lossLoses: cents(-loss - k), noLossPays: w, noLossLoses: cents(-k) };
+  return { lossPays: r4(-loss + w), lossLoses: r4(-loss - k), noLossPays: w, noLossLoses: r4(-k) };
 }
 
-const ORDER = ["lossPays", "lossLoses", "noLossPays", "noLossLoses"] as const;
-const mean = (o: Outcomes, p: JointProbs) => ORDER.reduce((a, k) => a + p[k] * o[k], 0);
-export const variance = (o: Outcomes, p: JointProbs) => { const m = mean(o, p); return ORDER.reduce((a, k) => a + p[k] * (o[k] - m) ** 2, 0); };
+/** Combined business + trading P&L for every (business state, settlement) pair with its probability. */
+export function pnl(c: number, t: CostTable, dist: DistRow[]): { o: number; p: number }[] {
+  const w = netWin(c, t), k = costAt(t, c);
+  return dist.flatMap((r) => [{ o: -r.loss + w, p: r.pays }, { o: -r.loss - k, p: r.loses }]);
+}
 
-/** CVaR of losses (= -outcome) at confidence alpha: mean loss over the worst (1-alpha) probability mass. */
-export function cvar(o: Outcomes, p: JointProbs, alpha = 0.9): number {
-  const pairs = ORDER.map((k) => ({ loss: -o[k], p: p[k] })).sort((a, b) => b.loss - a.loss);
-  let left = 1 - alpha, acc = 0;
-  for (const x of pairs) { const w = Math.min(x.p, left); acc += w * x.loss; left -= w; if (left <= 1e-15) break; }
-  return acc / (1 - alpha);
+export const meanOf = (xs: { o: number; p: number }[]) => xs.reduce((a, x) => a + x.p * x.o, 0);
+export const varianceOf = (xs: { o: number; p: number }[]) => { const m = meanOf(xs); return xs.reduce((a, x) => a + x.p * (x.o - m) ** 2, 0); };
+
+/**
+ * CVaR of losses (loss = -P&L) at 90%: min over t of t + 10 * sum p * max(loss - t, 0).
+ * The minimum is attained at one of the loss values, so scanning them is exact (partial tail mass handled by the formula).
+ */
+export function cvarOf(xs: { o: number; p: number }[]): number {
+  const L = xs.filter((x) => x.p > 0).map((x) => ({ l: -x.o, p: x.p }));
+  let best = Infinity;
+  for (const { l: t } of L) {
+    const v = t + 10 * L.reduce((a, x) => a + x.p * Math.max(x.l - t, 0), 0);
+    if (v < best) best = v;
+  }
+  return best;
 }
 
 export interface Ctx {
-  loss: number; table: CostTable; probs: JointProbs | null;
-  budget: number; maxTradingLoss: number; positionLimit: number; tolerance: Tolerance; variability: number;
+  loss: number; table: CostTable;
+  /** Joint distribution; null when probabilities are missing/invalid */
+  dist: DistRow[] | null;
+  /** NaN/null = owner has not entered a limit */
+  budget: number | null; maxTradingLoss: number | null; positionLimit: number; maxCoverage: number; variability: number;
 }
 
 export interface Position {
@@ -82,86 +103,109 @@ export interface Position {
   expTrading: number | null; expCombined: number | null; expNoHedge: number | null;
   worst: number; stressWorst: number; variance: number | null; cvar90: number | null;
   breakEvenProb: number | null; basisMissProb: number | null;
-  overhedged: boolean; budgetOk: boolean; lossCapOk: boolean; positionOk: boolean; expCostOk: boolean | null;
+  /** Winning payout exceeds the modeled loss (informational) */
+  exceedsLoss: boolean;
+  budgetOk: boolean | null; lossCapOk: boolean | null; positionOk: boolean; coverageOk: boolean;
+  /** Every owner limit entered, and all satisfied */
   allOk: boolean;
 }
 
+const ORDER = ["lossPays", "lossLoses", "noLossPays", "noLossLoses"] as const;
+const lim = (v: number | null) => (v === null || Number.isNaN(v) ? null : v);
+
 export function evaluate(c: number, x: Ctx): Position {
-  const t = x.table, f = fillOrder(c, t.price, t.ladder);
-  const o = outcomesFor(c, x.loss, t), w = netWin(c, t), p = x.probs;
-  const expTrading = p ? (p.lossPays + p.noLossPays) * w - (p.lossLoses + p.noLossLoses) * costAt(t, c) : null;
-  const expNoHedge = p ? -x.loss * (p.lossPays + p.lossLoses) : null;
-  const expCombined = p ? mean(o, p) : null;
-  const live = p ? ORDER.filter((k) => p[k] > 0) : [...ORDER];
-  const overhedged = c > 0 && (x.loss <= 0 || netWin(c - 1, t) > x.loss + 1e-9);
-  const budgetOk = costAt(t, c) <= x.budget + 1e-9;
-  const lossCapOk = costAt(t, c) <= x.maxTradingLoss + 1e-9;
+  const t = x.table, f = fillOrder(c, t.price, t.ladder, t.mult), k = costAt(t, c);
+  const o = outcomesFor(c, x.loss, t), w = netWin(c, t), d = x.dist;
+  const xs = d ? pnl(c, t, d) : null, base = d ? pnl(0, t, d) : null;
+  const expTrading = d ? d.reduce((a, r) => a + r.pays * w - r.loses * k, 0) : null;
+  const expNoHedge = base ? meanOf(base) : null;
+  const live = xs ? xs.filter((z) => z.p > 0).map((z) => z.o) : ORDER.map((q) => o[q]);
+  const B = lim(x.budget), M = lim(x.maxTradingLoss);
+  const budgetOk = B === null ? null : k <= B + 1e-9, lossCapOk = M === null ? null : k <= M + 1e-9;
   const positionOk = x.positionLimit <= 0 || c <= x.positionLimit;
-  const expCostOk = p && expTrading !== null && expNoHedge !== null ? -expTrading <= TOLERANCE_CAP[x.tolerance] * -expNoHedge + 1e-9 : null;
+  const coverageOk = w <= x.maxCoverage * x.loss + 1e-9;
   return {
-    contracts: c, cost: costAt(t, c), fee: f.fee, premium: f.premium, avgPrice: f.avgPrice, netWin: w,
-    coverage: x.loss > 0 ? w / x.loss : null, maxLoss: costAt(t, c), outcomes: o,
-    expTrading, expCombined, expNoHedge,
-    worst: Math.min(...live.map((k) => o[k])), stressWorst: cents(-x.loss * (1 + x.variability) - costAt(t, c)),
-    variance: p ? variance(o, p) : null, cvar90: p ? cvar(o, p) : null,
-    breakEvenProb: c > 0 ? costAt(t, c) / c : null, basisMissProb: p ? p.lossLoses : null,
-    overhedged, budgetOk, lossCapOk, positionOk, expCostOk,
-    allOk: budgetOk && lossCapOk && positionOk && expCostOk !== false,
+    contracts: c, cost: k, fee: f.fee, premium: f.premium, avgPrice: f.avgPrice, netWin: w,
+    coverage: x.loss > 0 ? w / x.loss : null, maxLoss: k, outcomes: o,
+    expTrading, expCombined: xs ? meanOf(xs) : null, expNoHedge,
+    worst: Math.min(...live), stressWorst: r4(-x.loss * (1 + x.variability) - k),
+    variance: xs ? varianceOf(xs) : null, cvar90: xs ? cvarOf(xs) : null,
+    breakEvenProb: c > 0 ? k / c : null, basisMissProb: d ? d.filter((r) => r.loss > 0).reduce((a, r) => a + r.loses, 0) : null,
+    exceedsLoss: c > 0 && w > x.loss + 1e-9,
+    budgetOk, lossCapOk, positionOk, coverageOk, allOk: budgetOk === true && lossCapOk === true && positionOk && coverageOk,
   };
 }
 
 export interface OptResult {
   objective: Objective;
   status: "ok" | "insufficient" | "infeasible";
+  /** The selected position (zero contracts is a valid answer) */
   position: Position;
   baseline: Position;
-  /** True when the chosen position strictly beats buying zero under the objective */
+  /** For the target objective: the position the target would need, even when it is not feasible */
+  required: Position | null;
+  /** True when the position is strictly better than buying zero under the objective's measure */
   beatsZero: boolean;
   why: string;
 }
+type Objective = "variance" | "cvar" | "target";
+
+export const NO_FEASIBLE = "No feasible hedge under current assumptions.";
+export const NEED_LIMITS = "Enter a maximum hedge spend and a maximum acceptable trading loss. Without an owner risk budget no personalized allocation is produced.";
 
 export const OBJECTIVE_TEXT: Record<Objective, { name: string; math: string }> = {
-  variance: { name: "Minimize variability", math: "Minimizes Var(combined business + trading outcome) over whole-contract quantities, under your four-state probabilities." },
-  cvar: { name: "Minimize downside risk", math: "Minimizes the 90% CVaR of combined losses (average of the worst 10% probability mass), under your four-state probabilities." },
-  target: { name: "Target protection at minimum cost", math: "Finds the smallest whole-contract position whose net winning-contract profit meets your target protection, at the lowest upfront cost." },
+  variance: { name: "Minimize variability", math: "Chooses the whole-contract quantity (zero included) that minimizes the variance of combined business + trading P&L under your modeled probability distribution." },
+  cvar: { name: "Minimize downside risk", math: "Chooses the whole-contract quantity (zero included) that minimizes the 90% CVaR: the probability-weighted average loss in the worst 10% of your modeled distribution." },
+  target: { name: "Target protection at minimum cost", math: "Finds the smallest whole-contract position whose net winning profit meets your target coverage. This is target sizing, not proof of positive expected value." },
 };
+
+const usd = (n: number) => "$" + n.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+/** Why a position breaks the owner's limits, in words. */
+export function breaches(p: Position, x: Ctx): string[] {
+  const out: string[] = [];
+  if (p.budgetOk === false) out.push(`costs ${usd(p.cost)}, above your ${usd(x.budget as number)} budget`);
+  if (p.lossCapOk === false) out.push(`could lose ${usd(p.maxLoss)}, above your ${usd(x.maxTradingLoss as number)} maximum trading loss`);
+  if (!p.positionOk) out.push(`exceeds your ${x.positionLimit.toLocaleString("en-US")}-contract position limit`);
+  if (!p.coverageOk) out.push(`pays ${usd(p.netWin)} if it wins, above your ${(x.maxCoverage * 100).toFixed(0)}% coverage limit`);
+  return out;
+}
 
 export function optimize(objective: Objective, x: Ctx, target: number): OptResult {
   const base = evaluate(0, x);
-  const mk = (c: number, status: OptResult["status"], beats: boolean, why: string): OptResult => ({ objective, status, position: evaluate(c, x), baseline: base, beatsZero: beats, why });
-  const feasible = (p: Position) => p.budgetOk && p.lossCapOk && p.positionOk && p.expCostOk !== false;
+  const mk = (c: number, status: OptResult["status"], beats: boolean, why: string, required: Position | null = null): OptResult =>
+    ({ objective, status, position: evaluate(c, x), baseline: base, required, beatsZero: beats, why });
+  const B = lim(x.budget), M = lim(x.maxTradingLoss);
+  if (objective !== "target" && !x.dist) return mk(0, "insufficient", false, "Insufficient information for a personalized optimal hedge estimate.");
+  if (B === null || M === null) return mk(0, "insufficient", false, NEED_LIMITS);
 
   if (objective === "target") {
     const c = minContractsFor([target], x.table)[0] ?? null;
-    if (c === null) return mk(0, "infeasible", false, "No whole-contract position reaches the target with the available price and depth, so zero contracts is shown.");
+    if (c === null) return mk(0, "infeasible", false, `${NO_FEASIBLE} No whole-contract position reaches the target with the available price and depth.`);
     if (c === 0) return mk(0, "ok", false, "The target protection is $0, so zero contracts is the answer.");
-    const p = evaluate(c, x);
-    if (!feasible(p)) return mk(0, "infeasible", false, `The cheapest position that meets the target (${c.toLocaleString("en-US")} contracts, $${p.cost.toFixed(2)}) breaks a budget, loss, position or tolerance limit, so zero contracts is shown.`);
-    return mk(c, "ok", true, `Smallest whole-contract position whose net winning profit is at least $${target.toFixed(2)}.`);
+    const p = evaluate(c, x), why = breaches(p, x);
+    if (why.length) return mk(0, "infeasible", false, `${NO_FEASIBLE} The smallest position meeting the target is ${c.toLocaleString("en-US")} contracts, which ${why.join(" and ")}.`, p);
+    return mk(c, "ok", true, `Smallest whole-contract position whose net winning profit is at least ${usd(target)}. This is target sizing, not an expected-value claim.`, p);
   }
 
-  if (!x.probs) return mk(0, "insufficient", false, "Insufficient information for a personalized optimal hedge estimate.");
-  const p = x.probs;
-  const score = (o: Outcomes) => (objective === "variance" ? variance(o, p) : cvar(o, p));
-  let bestC = 0, best = score(base.outcomes), feasibleCount = 0;
-  const t = x.table, cap = Math.min(x.budget, x.maxTradingLoss), noHedge = -x.loss * (p.lossPays + p.lossLoses);
+  const d = x.dist as DistRow[], t = x.table, cap = Math.min(B, M);
+  const score = (c: number) => (objective === "variance" ? varianceOf(pnl(c, t, d)) : cvarOf(pnl(c, t, d)));
+  let bestC = 0, best = score(0), feasibleCount = 0;
   for (let c = 1; c <= t.max; c++) {
-    const k = costAt(t, c), w = netWin(c, t);
-    if (k > cap + 1e-9) break; // cost only rises with size
-    if (x.loss <= 0 || netWin(c - 1, t) > x.loss + 1e-9) break; // overhedged from here on
+    if (costAt(t, c) > cap + 1e-9) break; // cost only rises with size
     if (x.positionLimit > 0 && c > x.positionLimit) break;
-    const expTrading = (p.lossPays + p.noLossPays) * w - (p.lossLoses + p.noLossLoses) * k;
-    if (-expTrading > TOLERANCE_CAP[x.tolerance] * -noHedge + 1e-9) continue;
+    if (netWin(c, t) > x.maxCoverage * x.loss + 1e-9) break; // coverage cap
     feasibleCount++;
-    const s = score(outcomesFor(c, x.loss, t));
+    const s = score(c);
+    // strict improvement only: ties keep the cheaper (and smaller) position found first
     if (s < best - 1e-9 * Math.max(1, Math.abs(best))) { best = s; bestC = c; }
   }
-  if (bestC === 0) {
-    return mk(0, "ok", false, feasibleCount === 0
-      ? "No whole-contract position fits inside your budget, loss cap, position limit and tolerance, so zero contracts is the answer."
-      : `No whole-contract position lowers ${objective === "variance" ? "variability" : "90% CVaR"} below buying none under these probabilities and prices (fees and basis risk outweigh the offset), so zero contracts is the answer.`);
-  }
-  return mk(bestC, "ok", true, `Lowest ${objective === "variance" ? "variance" : "90% CVaR"} among ${feasibleCount.toLocaleString("en-US")} feasible whole-contract positions.`);
+  const measure = objective === "variance" ? "variance" : "90% CVaR";
+  const caveat = " Optimal only under your modeled distribution and limits.";
+  if (bestC === 0) return mk(0, "ok", false, feasibleCount === 0
+    ? "No whole-contract position fits inside your budget, maximum trading loss, position limit and coverage limit, so zero contracts is the answer."
+    : `No whole-contract position lowers ${measure} below buying none under these probabilities and prices (fees and basis risk outweigh the offset), so zero contracts is the answer.${caveat}`);
+  return mk(bestC, "ok", true, `Lowest ${measure} among ${(feasibleCount + 1).toLocaleString("en-US")} feasible whole-contract positions including zero.${caveat}`);
 }
 
 export interface ChartPoint { pct: number; contracts: number | null; cost: number | null; ifPays: number | null; ifNotPays: number | null; expected: number | null; cvarChange: number | null }
@@ -170,14 +214,11 @@ export interface ChartPoint { pct: number; contracts: number | null; cost: numbe
 export function sweep(x: Ctx, steps = 100): ChartPoint[] {
   const targets = Array.from({ length: steps + 1 }, (_, i) => (i / steps) * x.loss);
   const cs = minContractsFor(targets, x.table);
-  const base = x.probs ? cvar(outcomesFor(0, x.loss, x.table), x.probs) : null;
+  const base = x.dist ? cvarOf(pnl(0, x.table, x.dist)) : null;
   return cs.map((c, i) => {
     const pct = (i / steps) * 100;
     if (c === null) return { pct, contracts: null, cost: null, ifPays: null, ifNotPays: null, expected: null, cvarChange: null };
-    const o = outcomesFor(c, x.loss, x.table);
-    return {
-      pct, contracts: c, cost: costAt(x.table, c), ifPays: o.lossPays, ifNotPays: o.lossLoses,
-      expected: x.probs ? mean(o, x.probs) : null, cvarChange: x.probs && base !== null ? cvar(o, x.probs) - base : null,
-    };
+    const o = outcomesFor(c, x.loss, x.table), xs = x.dist ? pnl(c, x.table, x.dist) : null;
+    return { pct, contracts: c, cost: costAt(x.table, c), ifPays: o.lossPays, ifNotPays: o.lossLoses, expected: xs ? meanOf(xs) : null, cvarChange: xs && base !== null ? cvarOf(xs) - base : null };
   });
 }

@@ -6,8 +6,8 @@ import { pct as pctFmt, signedUsd, usd } from "@/lib/format";
 import { analyze, buildSummary, type Analysis, type Check as CheckT } from "@/lib/owner/analysis";
 import { OBJECTIVE_TEXT } from "@/lib/owner/hedge";
 import {
-  defaultScenario, FEE_COEF, ILLUSTRATIVE_PROBS, MARKET, NAN_PROBS, PRESET_NAMES, resetScenario, TOLERANCE_CAP, TOLERANCE_LABEL,
-  type Objective, type Scenario, type StateKey, type Tolerance, type Verification,
+  defaultScenario, FEE_COEF, ILLUSTRATIVE_PROBS, MARKET, NAN_PROBS, PRESET_NAMES, resetScenario,
+  illustrativeLossRows, blankLossRows, type Objective, type Scenario, type StateKey, type Verification,
 } from "@/lib/owner/model";
 import { Num } from "./Num";
 import { OwnerChart } from "./OwnerChart";
@@ -149,7 +149,8 @@ export function OwnerLab() {
             {s.publicFacts && (
               <div className="mt-4 border border-line p-4 text-sm leading-relaxed text-chalk/85">
                 <Chip tag="fact" />
-                <p className="mt-2">Publicly described business characteristics: snow removal is charged per visit; residential prices start at roughly $60; customers are not required to sign seasonal contracts; services are offered around Chicago. These describe the business model only. They are not verified revenue, customer counts or margins.</p>
+                <p className="mt-2">Public facts from the company&apos;s own site: snow removal is pay-per-push with no flat seasonal snow-removal contracts; the residential base price is $60 per push; services also include commercial snow removal, salting, ice management and property maintenance. <a className="text-mint underline" target="_blank" rel="noopener noreferrer" href="https://assetoperationsgroup.com/chicagoland-snow-plowing-ice-management">Source<span className="sr-only"> (opens in a new tab)</span></a></p>
+                <p className="mt-2 text-steel">Not public, and not assumed: customer counts, operating margins, historical revenue and contract mix. The business is not assumed to depend entirely on snow. Only revenue and margin that actually fall in a low-snow December are modeled as lost.</p>
               </div>
             )}
             {list.length > 1 && <button type="button" onClick={remove} className="mt-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-steel underline hover:text-copper">Delete this scenario</button>}
@@ -176,7 +177,7 @@ export function OwnerLab() {
                   <label className="flex items-center gap-2 text-sm text-chalk/90"><input type="checkbox" checked={s.useOverride} onChange={(e) => up({ useOverride: e.target.checked, overrideLoss: e.target.checked && !s.overrideLoss ? a.exposure.lostContribution : s.overrideLoss })} />Use my own figure for the loss I want to protect</label>
                 </div>
                 {s.useOverride && <F label="Loss to protect" prefix="$" name="Loss to protect" value={s.overrideLoss} onChange={(v) => up({ overrideLoss: v })} min={0} max={50000} step={50} testId="in-override" err={err("overrideLoss")} />}
-                <F label="Historical variability of loss size" name="Variability" pct value={s.variability} onChange={(v) => up({ variability: v })} min={0} max={100} step={5} err={err("variability")} badge="Stress test" hint="Used only for the stress case: loss = modeled loss × (1 + variability)." />
+                <F label="Historical variability of loss size" name="Variability" pct value={s.variability} onChange={(v) => up({ variability: v })} min={0} max={100} step={5} err={err("variability")} badge="Stress test" hint="Stress test only: worst case = modeled loss × (1 + variability). It does NOT make the optimizer model a distribution of loss sizes; use the multi-level loss model for that." />
               </div>
             )}
           </Card>
@@ -185,6 +186,7 @@ export function OwnerLab() {
             <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
               <F label="Target protection if contract pays" name="Target protection" pct value={s.coverage} onChange={(v) => up({ coverage: v })} min={0} max={100} step={1} testId="in-coverage" err={err("coverage")} hint="Share of the loss the contract's net winning profit should repay." />
               <F label="NO contract purchase price" name="Contract price" prefix="$" value={s.price} onChange={(v) => up({ price: v })} min={0.01} max={0.99} step={0.01} testId="in-price" err={err("price")} badge="Illustrative" hint={a.priceSource === "live" ? "Ignored while the live order book is selected." : "An illustrative input, not a verified executable price."} />
+              {detailed && <F label="Fee multiplier (M)" name="Fee multiplier" value={s.feeMult} onChange={(v) => up({ feeMult: v })} min={0} max={2} step={0.05} slider={false} testId="in-feemult" err={err("feeMult")} badge="Analyst assumption" hint={a.priceSource === "live" ? "Ignored: live mode uses the multiplier Kalshi publishes for the series." : "General taker multiplier. Confirm it for this market; live mode reads the published value."} />}
             </div>
           </Card>
 
@@ -202,6 +204,7 @@ export function OwnerLab() {
                 </div>
                 {a.warnings.map((w) => <p key={w} className="mt-4 border-l-2 border-copper pl-3 text-sm text-copper">{w}</p>)}
               </Card>
+              <SizingResult a={a} s={s} />
               <Card title="Payout comparison" tag="hypo">
                 <Bars a={a} />
               </Card>
@@ -215,7 +218,7 @@ export function OwnerLab() {
             <>
               <Card title="Your risk preferences" tag="owner">
                 <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                  <F label="Maximum to spend on a hedge" prefix="$" name="Budget" value={s.budget} onChange={(v) => up({ budget: v })} min={0} max={2000} step={10} testId="in-budget" err={err("budget")} />
+                  <F label="Maximum upfront hedge spend" prefix="$" name="Budget" value={s.budget} onChange={(v) => up({ budget: v })} min={0} max={2000} step={10} testId="in-budget" err={err("budget")} hint="Required for any personalized allocation. Left blank, none is produced." />
                   <F label="Maximum acceptable trading loss" prefix="$" name="Max trading loss" value={s.maxTradingLoss} onChange={(v) => up({ maxTradingLoss: v })} min={0} max={2000} step={10} testId="in-maxloss" err={err("maxTradingLoss")} hint="A bought contract can lose at most its entry cost." />
                   <div>
                     <p className="font-mono text-[0.64rem] uppercase tracking-[0.16em] text-chalk/80">Desired protection</p>
@@ -223,15 +226,7 @@ export function OwnerLab() {
                   </div>
                   <F label="Expected chance of a low-snow December" pct name="Low-snow probability" value={s.lowSnowProb} onChange={(v) => up({ lowSnowProb: v })} min={0} max={100} step={1} slider={false} err={err("lowSnowProb")} hint="Optional. Compared with the four-state probabilities below." />
                   {detailed && <F label="Position limit (contracts, 0 = none known)" name="Position limit" value={s.positionLimit} onChange={(v) => up({ positionLimit: v })} min={0} max={10000} step={10} slider={false} err={err("positionLimit")} />}
-                  <div>
-                    <p id="tol-l" className="font-mono text-[0.64rem] uppercase tracking-[0.16em] text-chalk/80">Risk tolerance</p>
-                    <div role="group" aria-labelledby="tol-l" className="mt-1.5 flex flex-wrap gap-2">
-                      {(["low", "moderate", "high"] as Tolerance[]).map((t) => (
-                        <button key={t} type="button" aria-pressed={s.tolerance === t} onClick={() => up({ tolerance: t })} className={`border px-3 py-2 text-sm ${s.tolerance === t ? "border-mint bg-mint/10 text-mint" : "border-line text-chalk/80"}`}>{TOLERANCE_LABEL[t]}</button>
-                      ))}
-                    </div>
-                    <p className="mt-1 text-xs leading-snug text-steel">Sets a cap: expected hedging cost may not exceed {pctFmt(TOLERANCE_CAP[s.tolerance], 0)} of expected unhedged loss (needs probabilities).</p>
-                  </div>
+                  <F label="Maximum permitted winning-payout coverage" pct name="Max coverage" value={s.maxCoverage} onChange={(v) => up({ maxCoverage: v })} min={0} max={200} step={5} testId="in-maxcov" err={err("maxCoverage")} hint="Net profit if the contract pays may not exceed this share of the modeled loss. 100% means never more than the loss." />
                 </div>
                 <fieldset className="mt-6">
                   <legend className="font-mono text-[0.64rem] uppercase tracking-[0.16em] text-chalk/80">Optimization objective</legend>
@@ -247,23 +242,52 @@ export function OwnerLab() {
                 </fieldset>
               </Card>
 
-              <Card title="Four-state probabilities" tag="owner" aside={<span className="text-xs text-steel">Needed for the first two objectives</span>}>
-                <p className="mb-4 max-w-3xl text-sm text-chalk/80">How likely is each combination of business result and contract result? Business losses and the contract are <strong>not</strong> assumed to move together. Only enter probabilities you can support. None are filled in for you.</p>
-                <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
-                  {STATES.map((st) => (
-                    <F key={st.k} label={`${st.id}. ${st.title}`} pct name={st.title} value={s.probs[st.k]} onChange={(v) => setProb(st.k, v)} min={0} max={100} step={1} slider={false} testId={`prob-${st.k}`} />
-                  ))}
-                </div>
+              <Card title={s.lossModel === "simple" ? "Simplified four-state model" : "Multiple loss levels"} tag="owner" aside={<Seg label="Loss model" value={s.lossModel} onChange={(v) => up({ lossModel: v })} options={[{ v: "simple", label: "Four-state" }, { v: "multi", label: "Loss levels" }]} />}>
+                <p className="mb-4 max-w-3xl text-sm text-chalk/80">
+                  {s.lossModel === "simple"
+                    ? "How likely is each combination of business result and contract result? The business either loses the modeled amount or does not. Business losses and the contract are not assumed to move together."
+                    : "Define several possible operating losses. For each, say how likely it is that the contract pays and that it does not. All probabilities together must sum to 100%."}{" "}
+                  Only enter probabilities you can support. None are filled in for you, and entered values are never reset silently.
+                </p>
+                {s.lossModel === "simple" ? (
+                  <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
+                    {STATES.map((st) => (
+                      <F key={st.k} label={`${st.id}. ${st.title}`} pct name={st.title} value={s.probs[st.k]} onChange={(v) => setProb(st.k, v)} min={0} max={100} step={1} slider={false} testId={`prob-${st.k}`} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="space-y-4" data-testid="loss-rows">
+                    {s.lossRows.map((r, i) => {
+                      const setRow = (patch: Partial<typeof r>) => up({ lossRows: s.lossRows.map((x, j) => (j === i ? { ...x, ...patch } : x)), probSource: "owner" });
+                      return (
+                        <div key={r.name} className="grid gap-x-4 gap-y-3 border border-line p-4 sm:grid-cols-3">
+                          <p className="text-chalk sm:col-span-3">{r.name}</p>
+                          <F label="Operating loss" prefix="$" name={`${r.name} loss`} value={r.loss} onChange={(v) => setRow({ loss: v })} min={0} max={50000} step={50} slider={false} testId={`row-${i}-loss`} />
+                          <F label="Chance, contract pays" pct name={`${r.name} pays`} value={r.pays} onChange={(v) => setRow({ pays: v })} min={0} max={100} step={1} slider={false} testId={`row-${i}-pays`} />
+                          <F label="Chance, contract does not pay" pct name={`${r.name} does not pay`} value={r.loses} onChange={(v) => setRow({ loses: v })} min={0} max={100} step={1} slider={false} testId={`row-${i}-loses`} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
                 <div className="mt-4 flex flex-wrap items-center gap-3">
-                  <button type="button" onClick={fillRemainder} className="border border-line px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] hover:border-chalk/40">Fill D with remainder</button>
-                  <button type="button" onClick={() => up({ probs: { ...ILLUSTRATIVE_PROBS }, probSource: "illustrative" })} className="border border-line px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] hover:border-chalk/40" data-testid="load-illustrative">Load illustrative placeholder</button>
-                  <button type="button" onClick={() => up({ probs: { ...NAN_PROBS }, probSource: "owner" })} className="px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-steel underline">Clear</button>
+                  {s.lossModel === "simple" && <button type="button" onClick={fillRemainder} className="border border-line px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] hover:border-chalk/40">Fill D with remainder</button>}
+                  <button type="button" onClick={() => up(s.lossModel === "simple" ? { probs: { ...ILLUSTRATIVE_PROBS }, probSource: "illustrative" } : { lossRows: illustrativeLossRows(a.loss), probSource: "illustrative" })} className="border border-line px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] hover:border-chalk/40" data-testid="load-illustrative">Load illustrative placeholder</button>
+                  <button type="button" onClick={() => up({ probs: { ...NAN_PROBS }, lossRows: blankLossRows(), probSource: "owner" })} className="px-3 py-2 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-steel underline">Clear</button>
                 </div>
                 <div role="status" data-testid="prob-status" className="mt-3 text-sm">
-                  {a.probs.kind === "ok" ? (
-                    <p className="text-mint">Sum 100%. Chance of a business loss {pctFmt(s.probs.lossPays + s.probs.lossLoses, 1)}; chance the contract pays {pctFmt(s.probs.lossPays + s.probs.noLossPays, 1)}; the entered price implies about {pctFmt(s.price, 0)}.{a.probs.source === "illustrative" && <span className="text-copper"> Illustrative placeholder, not history.</span>}</p>
+                  {a.probs.kind === "ok" && a.stats ? (
+                    <div className="space-y-1">
+                      <p className="text-mint">Sum 100%.{a.probs.source === "illustrative" && <span className="text-copper"> Illustrative placeholder, not history: results are assumption-dependent.</span>}</p>
+                      <ul className="grid gap-1 text-chalk/85 sm:grid-cols-2">
+                        <li data-testid="stat-loss"><strong>Chance of a business loss:</strong> {pctFmt(a.stats.pLoss, 1)}{s.lossModel === "simple" ? " (A + B)" : ""}. How often your business earns less than normal.</li>
+                        <li data-testid="stat-payout"><strong>Chance the contract pays:</strong> {pctFmt(a.stats.pPayout, 1)}{s.lossModel === "simple" ? " (A + C)" : ""}. The entered price implies about {pctFmt(s.price, 0)}.</li>
+                        <li data-testid="stat-miss"><strong>Chance of a loss with no payout:</strong> {pctFmt(a.stats.pLossNoPay, 1)}{s.lossModel === "simple" ? " (B)" : ""}. This is basis risk.</li>
+                        <li data-testid="stat-cond"><strong>Payout when the business loses:</strong> {a.stats.pPayGivenLoss === null ? "n/a (no business loss modeled)" : `${pctFmt(a.stats.pPayGivenLoss, 1)}${s.lossModel === "simple" ? " (A ÷ (A + B))" : ""}`}. Below 100% means the contract does not always pay when you need it.</li>
+                      </ul>
+                    </div>
                   ) : a.probs.kind === "invalid" ? <p className="text-copper" data-testid="prob-error">{a.probs.error}</p>
-                    : <p className="text-steel">Not provided. Insufficient information for a personalized optimal hedge estimate.</p>}
+                    : <p className="text-steel">Not provided. Variance and CVaR optimization are blocked: insufficient information for a personalized optimal hedge estimate.</p>}
                 </div>
               </Card>
 
@@ -291,6 +315,44 @@ export function OwnerLab() {
 
       <PrintView summary={printSummary} />
     </div>
+  );
+}
+
+function ModeTag({ a }: { a: Analysis }) {
+  const prob = a.basis === "probability";
+  return (
+    <span className={`inline-block border px-3 py-1 font-mono text-[0.68rem] uppercase tracking-[0.12em] ${prob ? "border-mint/60 text-mint" : "border-copper/60 text-copper"}`}>
+      {prob ? "Probability-based optimization" : "Illustrative hedge sizing"}
+      {prob && a.probs.kind === "ok" && a.probs.source === "illustrative" ? " · assumption-dependent" : ""}
+    </span>
+  );
+}
+
+function SizingResult({ a, s }: { a: Analysis; s: Scenario }) {
+  const m = a.manual!, bad = m.budgetOk === false || m.lossCapOk === false || !m.positionOk || !m.coverageOk;
+  const entered = !Number.isNaN(s.budget) && !Number.isNaN(s.maxTradingLoss);
+  const ver = { illustrative: "illustrative", "owner-reported": "owner-reported", documented: "documented" }[s.verification];
+  const rows: [string, string, string][] = [
+    ["loss", "Estimated business loss", usd(a.loss)],
+    ["protection", "Desired protection", `${pctFmt(s.coverage, 0)} (${usd(a.target)} if the contract pays)`],
+    ["qty", "Financially feasible contract quantity", a.manualUnreachable ? "None: target cannot be filled" : !entered ? `${m.contracts.toLocaleString("en-US")} needed (no budget entered, so affordability is unknown)` : bad ? `None within your limits (target needs ${m.contracts.toLocaleString("en-US")})` : m.contracts.toLocaleString("en-US")],
+    ["cost", "Total cost and maximum trading loss", a.manualUnreachable ? "n/a" : `${usd(m.cost)} (the most you can lose)`],
+    ["win", "Net profit if the contract pays", a.manualUnreachable ? "n/a" : usd(m.netWin)],
+    ["lose", "Outcome if the contract does not pay", a.manualUnreachable ? "n/a" : `${usd(-(a.loss + m.cost))} (loss plus contract cost)`],
+    ["basis", "Basis risk", a.stats ? `${pctFmt(a.stats.pLossNoPay, 1)} chance of a loss with no payout` : "Not estimated: no probabilities entered"],
+    ["fits", "Fits your budget", !entered ? "Not entered" : bad ? "No" : "Yes"],
+    ["exec", "Market execution", a.priceSource === "live" ? "Order-book snapshot, not guaranteed" : a.liveUnavailable ? "Live book unavailable: nothing executable confirmed" : "Illustrative price, not verified"],
+    ["probs", "Probability basis", a.probs.kind !== "ok" ? "None entered" : a.probs.source === "illustrative" ? "Illustrative placeholder" : `Owner-entered (${ver})`],
+  ];
+  return (
+    <Card title="Hedge sizing result" tag="hypo" aside={<span data-testid="sizing-label"><ModeTag a={{ ...a, basis: "sizing" }} /></span>}>
+      <dl className="grid gap-x-8 gap-y-3 sm:grid-cols-2" data-testid="sizing">
+        {rows.map(([id, k, v]) => (
+          <div key={id} className="border-b border-line/60 pb-2"><dt className="font-mono text-[0.64rem] uppercase tracking-[0.14em] text-steel">{k}</dt><dd data-testid={`sz-${id}`} className="tnum mt-0.5 text-chalk">{v}</dd></div>
+        ))}
+      </dl>
+      <p className="mt-4 text-sm text-steel">This sizes a contract to a protection target you chose. It is not a recommended allocation and does not claim positive expected value. Use Step 3 for a probability-based comparison.</p>
+    </Card>
   );
 }
 
@@ -323,7 +385,14 @@ function Buildup({ s, up, err, a }: { s: Scenario; up: (p: Partial<Scenario>) =>
     <div className="grid gap-x-6 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
       <F label="Residential customers" name="Residential customers" value={s.resCustomers} onChange={(v) => up({ resCustomers: v })} min={0} max={500} step={1} err={err("resCustomers")} />
       <F label="Commercial customers" name="Commercial customers" value={s.comCustomers} onChange={(v) => up({ comCustomers: v })} min={0} max={200} step={1} err={err("comCustomers")} />
-      <F label="Share paying per push" name="Per-push share" pct value={s.perPushShare} onChange={(v) => up({ perPushShare: v })} min={0} max={100} step={5} err={err("perPushShare")} hint={`The other ${pctFmt(1 - (Number.isFinite(s.perPushShare) ? s.perPushShare : 1), 0)} pay a seasonal flat fee.`} />
+      {s.publicFacts
+        ? <p className="text-sm text-steel">Billing: per push only. No seasonal snow contracts are assumed for this company.</p>
+        : (
+          <div>
+            <label className="flex items-center gap-2 text-sm text-chalk/90"><input type="checkbox" checked={s.seasonalEnabled} onChange={(e) => up({ seasonalEnabled: e.target.checked })} />This company has seasonal snow contracts</label>
+            {s.seasonalEnabled && <div className="mt-3"><F label="Fixed seasonal revenue in December" prefix="$" name="Seasonal revenue" value={s.seasonalRevenue} onChange={(v) => up({ seasonalRevenue: v })} min={0} max={50000} step={100} err={err("seasonalRevenue")} hint="Enter the actual contractual amount. It is kept whatever the snowfall; nothing is derived from visits." /></div>}
+          </div>
+        )}
       <F label="Avg revenue per residential visit" prefix="$" name="Residential revenue" value={s.resRev} onChange={(v) => up({ resRev: v })} min={0} max={500} step={1} err={err("resRev")} />
       <F label="Avg revenue per commercial visit" prefix="$" name="Commercial revenue" value={s.comRev} onChange={(v) => up({ comRev: v })} min={0} max={2000} step={5} err={err("comRev")} />
       <div />
@@ -378,13 +447,13 @@ function DetailBlocks({ a, s }: { a: Analysis; s: Scenario }) {
             {row("Target protection", usd(a.target))}
             {m && !a.manualUnreachable && <>
               {row("Contracts", m.contracts.toLocaleString("en-US"))}{row("Contract principal", usd(m.premium), "d-principal")}
-              {row(`Estimated fee (ROUNDUP of ${FEE_COEF} × C × P × (1−P))`, usd(m.fee), "d-fee")}{row("Total cash at risk", usd(m.cost))}
+              {row(`Estimated fee (M × ${FEE_COEF} × C × P × (1−P), centicent precision)`, usd(m.fee), "d-fee")}{row("Total cash at risk", usd(m.cost))}
               {row("Gross payout if it pays", usd(m.contracts))}{row("Net winning profit", usd(m.netWin))}
               {row("Break-even probability (trading alone)", m.breakEvenProb === null ? "n/a" : pctFmt(m.breakEvenProb, 2))}
             </>}
           </dl>
         </div>
-        <p className="mt-4 text-sm text-steel">Fee is rounded up to the next cent for the whole order. Contracts are always whole numbers: the smallest count whose net winning profit meets the target.</p>
+        <p className="mt-4 text-sm text-steel">Internally exact to $0.0001 (fee plus cost rounded up to a centicent); shown to the cent. Contracts are always whole numbers: the smallest count whose net winning profit meets the target.</p>
       </Card>
 
       <Card title="Four joint outcomes" tag="hypo">
@@ -414,7 +483,7 @@ function DetailBlocks({ a, s }: { a: Analysis; s: Scenario }) {
           <li><strong>Market:</strong> {MARKET.ticker}</li><li><strong>Event:</strong> {MARKET.threshold}</li>
           <li><strong>Side modeled:</strong> NO. Pays $1 per winning contract if the YES condition is false, subject to the actual market rules.</li>
           <li><strong>Multiplier:</strong> 1. Whole contracts only.</li>
-          <li><strong>Fee:</strong> general taker fee, ROUNDUP({FEE_COEF} × C × P × (1−P)) to the cent per order.</li>
+          <li><strong>Fee:</strong> round_up(M × {FEE_COEF} × C × P × (1−P)); fee + position cost rounded up to $0.0001. M = {a.feeMult}. Multi-level fills apply the formula to each execution quantity.</li>
           <li><strong>Price:</strong> illustrative input unless you select the live order book.</li>
           <li className="sm:col-span-2"><a className="text-mint underline" target="_blank" rel="noopener noreferrer" href={MARKET.url}>Official market page<span className="sr-only"> (opens in a new tab)</span></a></li>
         </ul>
@@ -425,21 +494,26 @@ function DetailBlocks({ a, s }: { a: Analysis; s: Scenario }) {
 
 function Results({ a, s }: { a: Analysis; s: Scenario }) {
   const o = a.opt!, p = o.position, b = o.baseline;
-  const sub = (txt: string) => <span className="text-xs text-steel">{txt}</span>;
   return (
-    <Card id="results" title="Your hedge analysis" tag="hypo" aside={<span data-testid="exec-label" className="font-mono text-[0.68rem] uppercase tracking-[0.1em] text-copper">{a.priceSource === "live" ? "Order-book snapshot · not a guaranteed fill" : a.scenarioLabel}</span>}>
+    <Card id="results" title="Your hedge analysis" tag="hypo" aside={<span data-testid="exec-label" className="font-mono text-[0.68rem] uppercase tracking-[0.1em] text-copper">{a.priceSource === "live" ? "Order-book snapshot · not a guaranteed fill" : a.liveUnavailable ? "Live book unavailable · nothing executable confirmed" : a.scenarioLabel}</span>}>
       <p className="font-mono text-[0.7rem] uppercase tracking-[0.16em] text-steel">Objective</p>
       <p className="mt-1 text-lg text-chalk" data-testid="opt-objective">{OBJECTIVE_TEXT[o.objective].name}</p>
-      <p className="mt-1 max-w-3xl text-sm text-steel">{OBJECTIVE_TEXT[o.objective].math} Constraints: budget {usd(s.budget)}, max trading loss {usd(s.maxTradingLoss)}{s.positionLimit > 0 ? `, ${s.positionLimit} contracts` : ""}, no overhedging, and risk tolerance “{TOLERANCE_LABEL[s.tolerance]}”. This is optimal only under that objective and those inputs.</p>
+      <p className="mt-1 max-w-3xl text-sm text-steel">{OBJECTIVE_TEXT[o.objective].math} Constraints: spend ≤ {Number.isNaN(s.budget) ? "not entered" : usd(s.budget)}, trading loss ≤ {Number.isNaN(s.maxTradingLoss) ? "not entered" : usd(s.maxTradingLoss)}, winning payout ≤ {pctFmt(s.maxCoverage, 0)} of the modeled loss{s.positionLimit > 0 ? `, ≤ ${s.positionLimit} contracts` : ""}.</p>
+      <p data-testid="basis-label" className="mt-3"><ModeTag a={a} /></p>
 
       {o.status === "insufficient" ? (
-        <p data-testid="opt-insufficient" className="mt-5 border border-copper/60 p-4 text-copper">Insufficient information for a personalized optimal hedge estimate.<span className="mt-1 block text-sm text-chalk/80">Enter probabilities you can support (or load the illustrative placeholder to explore), or choose “Target protection at minimum cost”.</span></p>
+        <p data-testid="opt-insufficient" className="mt-5 border border-copper/60 p-4 text-copper">{o.why}<span className="mt-1 block text-sm text-chalk/80">Enter probabilities you can support (or load the illustrative placeholder to explore), or choose “Target protection at minimum cost”.</span></p>
+      ) : o.status === "infeasible" ? (
+        <div data-testid="opt-infeasible" className="mt-5 border border-copper/60 p-4">
+          <p className="text-copper">{o.why}</p>
+          <p className="mt-2 text-sm text-chalk/85">Zero contracts is the only position inside your limits. {o.required && <>For reference, the target needs {o.required.contracts.toLocaleString("en-US")} contracts costing {usd(o.required.cost)}, with net profit {usd(o.required.netWin)} if it pays.</>}</p>
+        </div>
       ) : (
         <>
           <p data-testid="opt-why" className={`mt-5 border-l-2 pl-3 ${p.contracts === 0 ? "border-copper text-copper" : "border-mint text-chalk"}`}>
             {p.contracts === 0 ? `Recommended under this objective: buy zero contracts. ${o.why}` : `Calculated position: ${p.contracts.toLocaleString("en-US")} contracts. ${o.why}`}
           </p>
-          {a.probs.kind === "ok" && a.probs.source === "illustrative" && <p className="mt-2 text-sm text-copper">Based on illustrative placeholder probabilities, not a personalized estimate.</p>}
+          {a.basis === "probability" && a.probs.kind === "ok" && a.probs.source === "illustrative" && <p className="mt-2 text-sm text-copper">Based on illustrative placeholder probabilities: assumption-dependent, not a personalized estimate.</p>}
           <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Stat k="Calculated contracts" big tone="mint"><Num value={p.contracts} kind="int" testId="opt-contracts" /></Stat>
             <Stat k="Winning-payout coverage" sub="Net profit if it pays ÷ loss"><Num value={p.coverage} kind="pct" testId="opt-coverage" /></Stat>
@@ -448,13 +522,13 @@ function Results({ a, s }: { a: Analysis; s: Scenario }) {
             <Stat k="Expected trading P&L" sub="Under your probabilities"><Num value={p.expTrading} testId="opt-exptrading" /></Stat>
             <Stat k="Expected combined P&L" sub={b.expCombined === null ? undefined : `No hedge: ${usd(b.expCombined)}`}><Num value={p.expCombined} testId="opt-expcombined" /></Stat>
             <Stat k="Worst modeled combined outcome" sub={`No hedge: ${usd(b.worst)}`}><Num value={p.worst} testId="opt-worst" /></Stat>
-            <Stat k="Change in 90% CVaR vs no hedge" sub="Negative = less downside"><Num value={p.cvar90 === null || b.cvar90 === null ? null : p.cvar90 - b.cvar90} testId="opt-cvar" /></Stat>
+            <Stat k="90% CVaR before → after" sub={b.cvar90 === null || p.cvar90 === null ? "needs probabilities" : `${usd(b.cvar90)} → ${usd(p.cvar90)}`}><Num value={p.cvar90 === null || b.cvar90 === null ? null : p.cvar90 - b.cvar90} testId="opt-cvar" /></Stat>
           </div>
           <ul className="mt-5 grid gap-2 text-sm text-chalk/85 sm:grid-cols-2">
             <li><strong>Basis-risk exposure:</strong> {p.basisMissProb === null ? "needs probabilities" : `${pctFmt(p.basisMissProb, 1)} chance you lose money and the contract pays nothing; that state costs ${usd(-p.outcomes.lossLoses)}.`}</li>
             <li><strong>Stress case</strong> (loss +{pctFmt(s.variability, 0)}): worst outcome {usd(p.stressWorst)}.</li>
-            <li data-testid="opt-constraints"><strong>Budget constraints:</strong> {p.allOk ? "all satisfied" : "not satisfied"} (budget {p.budgetOk ? "ok" : "exceeded"}, loss cap {p.lossCapOk ? "ok" : "exceeded"}, position limit {p.positionOk ? "ok" : "exceeded"}).</li>
-            <li><strong>Overhedging:</strong> {p.overhedged ? "this size would pay out more than the whole loss" : "not overhedged"}. {sub("A hedge is judged against zero contracts, shown in the comparison below.")}</li>
+            <li data-testid="opt-constraints"><strong>Owner limits:</strong> {p.allOk ? "all entered and satisfied" : "not all satisfied"} (spend {p.budgetOk === null ? "not entered" : p.budgetOk ? "ok" : "exceeded"}, trading loss {p.lossCapOk === null ? "not entered" : p.lossCapOk ? "ok" : "exceeded"}, position {p.positionOk ? "ok" : "exceeded"}, coverage {p.coverageOk ? "ok" : "exceeded"}).</li>
+            <li data-testid="opt-exceeds"><strong>Coverage:</strong> {p.coverage === null ? "n/a" : pctFmt(p.coverage, 1)} of the modeled loss. {p.exceedsLoss ? "Winning payout exceeds modeled loss." : "Winning payout does not exceed the modeled loss."} If the business has no loss but the contract pays, you keep <span className="tnum">{usd(p.outcomes.noLossPays)}</span> (outcome C).</li>
           </ul>
           <p className="mt-4 text-sm text-steel">This is a calculation under the stated assumptions, not a guarantee that a hedge will work and not a recommendation to trade.</p>
         </>
@@ -467,7 +541,7 @@ function Compare({ a, ran }: { a: Analysis; ran: boolean }) {
   const o = a.opt;
   const sufficient = ran && !!o && o.status === "ok";
   return (
-    <Card title="Hedge size comparison" tag="hypo">
+    <Card title="Hedge size comparison" tag="hypo" aside={<span className="font-mono text-[0.68rem] uppercase tracking-[0.1em] text-copper">Illustrative hedge sizing, none is a recommended allocation</span>}>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" data-testid="compare">
         {a.compare.map((r) => {
           const p = r.position, isOpt = r.id === "opt", hl = isOpt && sufficient;
@@ -478,15 +552,16 @@ function Compare({ a, ran }: { a: Analysis; ran: boolean }) {
               {(!isOpt || sufficient) && (p ? (
                 <dl className="mt-3 space-y-1.5 text-sm">
                   <Line k="Contracts" v={p.contracts.toLocaleString("en-US")} />
-                  <Line k="Entry cost" v={usd(p.cost)} warn={!p.budgetOk} />
+                  <Line k="Entry cost" v={usd(p.cost)} warn={p.budgetOk === false} />
                   <Line k="Net payout if it wins" v={usd(p.netWin)} />
                   <Line k="Loss left if it pays" v={usd(Math.max(0, a.loss - p.netWin))} />
                   <Line k="Loss if it does not pay" v={usd(a.loss + p.cost)} />
+                  <Line k="Gain if no loss but it pays" v={usd(p.outcomes.noLossPays)} />
                   <Line k="Expected result" v={p.expCombined === null ? "needs probabilities" : signedUsd(p.expCombined)} />
                 </dl>
               ) : <p className="mt-3 text-sm text-steel">Not reachable with the available depth.</p>)}
-              {p && !p.budgetOk && (!isOpt || sufficient) && <p className="mt-2 text-xs text-copper">Over your budget.</p>}
-              {p && p.overhedged && (!isOpt || sufficient) && <p className="mt-2 text-xs text-copper">Overhedged.</p>}
+              {p && p.budgetOk === false && (!isOpt || sufficient) && <p className="mt-2 text-xs text-copper">Over your budget.</p>}
+              {p && p.exceedsLoss && (!isOpt || sufficient) && <p className="mt-2 text-xs text-copper">Winning payout exceeds modeled loss.</p>}
               {hl && o!.position.contracts === 0 && <p className="mt-3 text-xs text-copper">{o!.why}</p>}
             </div>
           );
@@ -516,7 +591,7 @@ function MarketCard({ a, s, ms, market, reload, onToggle }: { a: Analysis; s: Sc
         </div>
       )}
       <label className={`mt-4 flex items-center gap-2 text-sm ${market?.verified ? "text-chalk" : "text-steel"}`}>
-        <input type="checkbox" data-testid="use-live" disabled={!market?.verified} checked={s.useLive && !!market?.verified} onChange={(e) => onToggle(e.target.checked)} />
+        <input type="checkbox" data-testid="use-live" disabled={!market?.verified && !s.useLive} checked={s.useLive} onChange={(e) => onToggle(e.target.checked)} />
         Price the hedge from the live order book (walks multiple price levels, recalculates fees on the fills)
       </label>
       <p data-testid="price-source" className="mt-2 font-mono text-[0.7rem] uppercase tracking-[0.1em] text-copper">{a.priceSource === "live" ? "Pricing: order-book snapshot. Not a guaranteed price." : "Pricing: illustrative input. " + a.scenarioLabel}</p>
