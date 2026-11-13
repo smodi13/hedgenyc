@@ -1,8 +1,11 @@
 /**
  * Pure, deterministic hedge model. Mirrors the supplied workbook
- * (Sail Hedge / Transport Hedge / Tree Hedge sheets) cell-for-cell.
+ * (Sail Hedge / Transport Hedge / Tree Hedge sheets) except fee precision: the workbook rounds the fee to the cent,
+ * this model follows the Kalshi schedule effective July 7, 2026 (centicent). Differences are under one cent per cell.
  * Every number the simulator shows is derived from here; nothing is typed in.
  */
+
+import { orderCost, rawFee, round4 } from "./fee";
 
 export interface JointProbs {
   /** P(business loss AND contract settles YES) */
@@ -76,24 +79,27 @@ export interface HedgeResult {
 
 const cents = (x: number) => Math.round(x * 100) / 100;
 
-/** ROUNDUP(m*N*p*(1-p), 2) — cent-safe against float noise (e.g. 4.290000000000001). */
+/**
+ * General taker fee component under the Kalshi schedule effective July 7, 2026 (shared implementation in ./fee):
+ * fee = round_up(m * N * p * (1 - p)) with fee + position cost rounded up to a centicent ($0.0001).
+ * `coef` is M * 0.07 (0.07 at M = 1).
+ */
 export function takerFee(contracts: number, price: number, coef: number): number {
   if (contracts <= 0 || coef <= 0) return 0;
-  const raw = coef * contracts * price * (1 - price) * 100;
-  return Math.ceil(raw - 1e-7) / 100;
+  const premium = round4(contracts * price);
+  return round4(orderCost(premium, rawFee(contracts, price, coef)) - premium);
 }
 
 export function contractEconomics(contracts: number, price: number, coef: number): ContractEconomics {
-  const premium = cents(contracts * price);
-  const fee = takerFee(contracts, price, coef);
-  const cashAtRisk = cents(premium + fee);
+  const premium = round4(contracts * price);
+  const cashAtRisk = orderCost(premium, rawFee(contracts, price, coef));
   return {
     premium,
-    fee,
+    fee: round4(cashAtRisk - premium),
     cashAtRisk,
     grossPayoutYes: contracts,
-    netYes: cents(contracts - cashAtRisk),
-    netNo: cents(-cashAtRisk),
+    netYes: round4(contracts - cashAtRisk),
+    netNo: round4(-cashAtRisk),
   };
 }
 
@@ -142,7 +148,7 @@ export function computeHedge(i: HedgeInputs): HedgeResult {
     const meta = STATE_LABELS[key];
     const businessDelta = meta.businessLoss ? -i.loss : 0;
     const contractDelta = meta.contractYes ? contract.netYes : contract.netNo;
-    return { key, ...meta, probability: i.probs[key], businessDelta, contractDelta, combinedDelta: cents(businessDelta + contractDelta) };
+    return { key, ...meta, probability: i.probs[key], businessDelta, contractDelta, combinedDelta: round4(businessDelta + contractDelta) };
   });
   const worstCombined = Math.min(...states.map((s) => s.combinedDelta));
   const adverseNoPayoff = states.find((s) => s.key === "p10")!.combinedDelta;

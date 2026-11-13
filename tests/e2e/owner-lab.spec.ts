@@ -154,6 +154,28 @@ test.describe("owner lab", () => {
     await expect(page.getByText("Enter the actual contractual amount")).toBeVisible();
   });
 
+  test("early settlement and fee source are disclosed in assumptions, suitability, copy and print", async ({ page, context, browserName }) => {
+    const EARLY = "If Chicago O'Hare records more than 2 inches of December snowfall, this contract can close and settle early. A NO position would then expire worthless, even if December has not ended. Official reporting and confirmation may take time.";
+    await open(page);
+    await page.getByRole("button", { name: "Detailed view" }).click();
+    await expect(page.getByTestId("early-settlement")).toContainText(EARLY);
+    await expect(page.getByRole("heading", { name: "Market suitability checklist" }).locator("..").locator("..")).toContainText(EARLY);
+    await expect(page.getByTestId("fee-source").getByRole("link")).toHaveAttribute("href", "https://kalshi.com/docs/kalshi-fee-schedule.pdf");
+    await expect(page.getByTestId("fee-source")).toContainText("effective July 7, 2026");
+    await expect(page.getByTestId("fee-source")).toContainText("centicent");
+    if (browserName === "chromium") {
+      await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+      await page.getByRole("button", { name: "Copy summary" }).click();
+      await expect(page.getByTestId("copy-status")).toHaveText("Summary copied to clipboard.");
+      const txt = await page.evaluate(() => navigator.clipboard.readText());
+      expect(txt).toContain(EARLY);
+      expect(txt).toContain("Kalshi Fee Schedule, effective July 7, 2026");
+    }
+    await page.emulateMedia({ media: "print" });
+    await expect(page.getByTestId("print-view")).toContainText(EARLY);
+    await expect(page.getByTestId("print-view")).toContainText("https://kalshi.com/docs/kalshi-fee-schedule.pdf");
+  });
+
   test("probability validation", async ({ page }) => {
     await open(page);
     for (const [id, val] of [["lossPays", "30"], ["lossLoses", "30"], ["noLossPays", "30"], ["noLossLoses", "30"]] as [string, string][]) await setNum(page, `prob-${id}`, val);

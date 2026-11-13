@@ -3,7 +3,8 @@
  * Orders are whole contracts of the NO side, multiplier 1.
  * Fee: round_up(M * 0.07 * C * P * (1 - P)); fee + position cost rounded up to a centicent ($0.0001).
  */
-import { FEE_COEF, FEE_PRECISION, type DistRow } from "./model";
+import { ceilCenticent, FEE_COEF, rawFee as sharedRawFee, round4 } from "../finance/fee";
+import type { DistRow } from "./model";
 
 /** Search ceiling: no more than this many contracts are ever evaluated. */
 export const CEILING = 50_000;
@@ -12,10 +13,10 @@ export interface Level { price: number; size: number }
 /** NO ask ladder, ascending price. null = illustrative single price with unlimited depth. */
 export type Ladder = Level[] | null;
 
-const r4 = (x: number) => Math.round(x * FEE_PRECISION) / FEE_PRECISION;
-/** Round UP to a centicent; the epsilon absorbs binary-float noise on exact centicents. */
-export const ceilCenticent = (x: number) => Math.ceil(x * FEE_PRECISION - 1e-6) / FEE_PRECISION;
-export const rawFee = (qty: number, price: number, mult: number) => (qty <= 0 || mult <= 0 ? 0 : mult * FEE_COEF * qty * price * (1 - price));
+const r4 = round4;
+export { ceilCenticent };
+/** Unrounded fee in dollars for M = mult. */
+export const rawFee = (qty: number, price: number, mult: number) => sharedRawFee(qty, price, mult * FEE_COEF);
 
 export interface Fill { premium: number; fee: number; cost: number; avgPrice: number | null; filled: number; complete: boolean; levels: { price: number; qty: number }[] }
 

@@ -141,7 +141,7 @@ export function Lab() {
             )}
             {s.src && <p className="text-xs leading-snug text-copper">Price taken from an observed ask on {fmtTime(s.src.at)}. A fill may differ, other fees may apply, and probabilities below are unchanged.</p>}
             <NumField testId="contracts" name="YES contracts" label={<Term term="contract payout">YES contracts</Term>} value={s.contracts} onChange={(v) => set({ contracts: v })} min={0} max={1000} step={10} badge="Illustrative" hint="Pays $1 per contract if YES; $0 otherwise." />
-            <NumField testId="fee" label="General taker multiplier" value={s.feeCoef} onChange={(v) => set({ feeCoef: v })} min={0} max={0.2} step={0.005} badge="Kalshi general" hint="Fee = round-up-to-cent of m × N × p × (1 − p). Category and order-type schedules differ; verify before any transaction." />
+            <NumField testId="fee" label="General taker multiplier" value={s.feeCoef} onChange={(v) => set({ feeCoef: v })} min={0} max={0.2} step={0.005} badge="Kalshi general" hint="Fee = round_up(m × N × p × (1 − p)), with fee + cost rounded up to $0.0001 (Kalshi Fee Schedule, effective July 7, 2026). Category and order-type schedules differ; verify before any transaction." />
           </fieldset>
 
           <fieldset className="min-w-0 space-y-4 border border-line p-5">

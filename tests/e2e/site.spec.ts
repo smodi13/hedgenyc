@@ -231,8 +231,8 @@ test.describe("hedge lab", () => {
     await gotoHome(page);
     await page.locator("#lab").getByRole("button", { name: "Xentra Transport", exact: true, pressed: false }).click();
     await expect(tile(page, "m-loss")).toContainText("$480.00");
-    await expect(tile(page, "m-cash")).toContainText("$138.78");
-    await expect(tile(page, "m-adverse")).toContainText("−$618.78");
+    await expect(tile(page, "m-cash")).toContainText("$138.77");
+    await expect(tile(page, "m-adverse")).toContainText("−$618.77");
     await expect(tile(page, "m-basis")).toContainText("15.0% / 16.0%");
     await page.locator("#lab").getByRole("button", { name: "Arborpolitan", exact: true, pressed: false }).click();
     await expect(tile(page, "m-loss")).toContainText("$0.00");
@@ -308,7 +308,7 @@ test.describe("market feed", () => {
     await expect(page.getByTestId("xentra-no-hedge")).toContainText("NO SUITABLE XENTRA HEDGE VALIDATED");
     await expect(page.getByTestId("xentra-no-hedge")).toContainText("operating diligence");
     await expect(page.getByTestId("price")).toHaveValue("0.38");
-    await expect(page.getByTestId("m-cash")).toContainText("$138.78");
+    await expect(page.getByTestId("m-cash")).toContainText("$138.77");
     await page.locator("#lab").getByRole("button", { name: "Brooklyn Sail", exact: true }).click();
     await expect(page.getByRole("button", { name: /Use observed YES ask \$0\.23|Use observed YES ask/ })).toHaveCount(0); // mock has no Sail active market
   });

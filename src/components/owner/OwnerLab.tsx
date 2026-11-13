@@ -5,6 +5,7 @@ import type { OwnerMarket } from "@/lib/kalshi/owner-market";
 import { pct as pctFmt, signedUsd, usd } from "@/lib/format";
 import { analyze, buildSummary, type Analysis, type Check as CheckT } from "@/lib/owner/analysis";
 import { OBJECTIVE_TEXT } from "@/lib/owner/hedge";
+import { EARLY_SETTLEMENT, FEE_SOURCE } from "@/lib/owner/model";
 import {
   defaultScenario, FEE_COEF, ILLUSTRATIVE_PROBS, MARKET, NAN_PROBS, PRESET_NAMES, resetScenario,
   illustrativeLossRows, blankLossRows, type Objective, type Scenario, type StateKey, type Verification,
@@ -485,6 +486,8 @@ function DetailBlocks({ a, s }: { a: Analysis; s: Scenario }) {
           <li><strong>Multiplier:</strong> 1. Whole contracts only.</li>
           <li><strong>Fee:</strong> round_up(M × {FEE_COEF} × C × P × (1−P)); fee + position cost rounded up to $0.0001. M = {a.feeMult}. Multi-level fills apply the formula to each execution quantity.</li>
           <li><strong>Price:</strong> illustrative input unless you select the live order book.</li>
+          <li className="sm:col-span-2" data-testid="early-settlement"><strong>Early settlement:</strong> {EARLY_SETTLEMENT}</li>
+          <li className="sm:col-span-2" data-testid="fee-source"><strong>Fee source:</strong> <a className="text-mint underline" target="_blank" rel="noopener noreferrer" href={FEE_SOURCE.url}>{FEE_SOURCE.label}<span className="sr-only"> (opens in a new tab)</span></a>. General taker formula: Fee = round_up(M × {FEE_COEF} × C × P × (1−P)); fee + position cost rounded up to the next centicent ($0.0001).</li>
           <li className="sm:col-span-2"><a className="text-mint underline" target="_blank" rel="noopener noreferrer" href={MARKET.url}>Official market page<span className="sr-only"> (opens in a new tab)</span></a></li>
         </ul>
       </Card>
@@ -611,7 +614,8 @@ function Suitability({ a, s }: { a: Analysis; s: Scenario }) {
     ["Is the threshold relevant?", "The contract is about MORE than 2 inches. Does a month at or under 2 inches actually correspond to this business's bad months?"],
     ["Is the price consistent with the owner's view?", a.probs.kind === "ok" ? `The owner's inputs imply the contract pays ${pctFmt(s.probs.lossPays + s.probs.noLossPays, 1)}; the price implies about ${pctFmt(s.price, 0)}.` : "Needs the owner's four-state probabilities."],
     ["Is there enough liquidity?", a.checks.find((c) => c.id === "depth")?.detail ?? "Unknown."],
-    ["Do timing and limits fit?", "The market settles after December 2026. Confirm account minimums, position limits and the owner's cash timing."],
+    ["Could the contract settle early?", EARLY_SETTLEMENT],
+    ["Do timing and limits fit?", "Settlement otherwise follows the end of December 2026, and official confirmation takes time. Confirm account minimums, position limits and the owner's cash timing."],
   ];
   return (
     <Card title="Market suitability checklist" tag="analyst">

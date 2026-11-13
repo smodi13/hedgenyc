@@ -16,12 +16,11 @@ export const MARKET = {
   threshold: "more than 2 inches of snowfall at Chicago O'Hare during December 2026",
 } as const;
 
-/**
- * Kalshi general taker fee: round_up(M * 0.07 * C * P * (1 - P)), with fee + position cost rounded up to a centicent ($0.0001).
- * M is the market's fee multiplier. Schedule per the research owner's reference (kalshi.com/docs/kalshi-fee-schedule.pdf, eff. July 7, 2026).
- */
-export const FEE_COEF = 0.07;
-export const FEE_PRECISION = 1e4;
+export { FEE_COEF, FEE_PRECISION, FEE_SOURCE } from "../finance/fee";
+
+/** Required early-settlement disclosure for KXCHISNOWM-26DEC-2. */
+export const EARLY_SETTLEMENT =
+  "If Chicago O'Hare records more than 2 inches of December snowfall, this contract can close and settle early. A NO position would then expire worthless, even if December has not ended. Official reporting and confirmation may take time.";
 
 /** Probabilities in the four joint states. NaN = not provided. Fractions 0..1. */
 export interface JointProbs { lossPays: number; lossLoses: number; noLossPays: number; noLossLoses: number }

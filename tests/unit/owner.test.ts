@@ -6,6 +6,8 @@ import {
 import {
   defaultScenario, distRows, exposure, ILLUSTRATIVE_PROBS, illustrativeLossRows, probState, protectedLoss, resetScenario, validate, type Scenario,
 } from "@/lib/owner/model";
+import { contractEconomics } from "@/lib/finance/hedge";
+import { EARLY_SETTLEMENT, FEE_SOURCE } from "@/lib/owner/model";
 import { buildOwnerMarket } from "@/lib/kalshi/owner-market";
 import { parseNoAskLadder } from "@/lib/kalshi/parse";
 import type { OwnerMarket } from "@/lib/kalshi/owner-market";
@@ -529,5 +531,28 @@ describe("chart sweep", () => {
     expect(pts[0]!.contracts).toBe(0);
     expect(pts[0]!.ifPays).toBe(-1200);
     for (let i = 1; i < pts.length; i++) expect(pts[i]!.cost!).toBeGreaterThanOrEqual(pts[i - 1]!.cost!);
+  });
+});
+
+describe("early-settlement disclosure and fee source", () => {
+  const s = limits(base());
+  const sum = buildSummary(s, analyze(s, null), null, new Date("2026-11-12T12:00:00Z"));
+  it("exact required wording", () => {
+    expect(EARLY_SETTLEMENT).toBe("If Chicago O'Hare records more than 2 inches of December snowfall, this contract can close and settle early. A NO position would then expire worthless, even if December has not ended. Official reporting and confirmation may take time.");
+    expect(EARLY_SETTLEMENT).not.toMatch(/instant/i);
+  });
+  it("is in the copied summary and the print sections", () => {
+    expect(sum.text).toContain(EARLY_SETTLEMENT);
+    expect(sum.sections.flatMap((x) => x.rows).some(([k, v]) => k === "Early settlement" && v === EARLY_SETTLEMENT)).toBe(true);
+  });
+  it("fee source is cited with the schedule date and URL", () => {
+    expect(FEE_SOURCE.url).toBe("https://kalshi.com/docs/kalshi-fee-schedule.pdf");
+    expect(sum.text).toContain("Kalshi Fee Schedule, effective July 7, 2026");
+    expect(sum.text).toContain("https://kalshi.com/docs/kalshi-fee-schedule.pdf");
+  });
+  it("homepage Hedge Lab and Owner Lab share one fee implementation", () => {
+    for (const [n, p] of [[391, 0.22], [489, 0.37], [250, 0.43], [350, 0.38], [1, 0.5]] as const) {
+      expect(contractEconomics(n, p, 0.07).cashAtRisk).toBe(fillOrder(n, p, null, 1).cost);
+    }
   });
 });

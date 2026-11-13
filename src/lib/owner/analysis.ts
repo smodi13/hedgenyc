@@ -6,7 +6,7 @@ import {
   OBJECTIVE_TEXT, type ChartPoint, type Ctx, type Ladder, type OptResult, type Position,
 } from "./hedge";
 import {
-  distRows, exposure, FEE_COEF, MARKET, probState, protectedLoss, validate,
+  distRows, EARLY_SETTLEMENT, exposure, FEE_COEF, FEE_SOURCE, MARKET, probState, protectedLoss, validate,
   type DistRow, type Exposure, type FieldErrors, type ProbState, type Scenario,
 } from "./model";
 
@@ -172,6 +172,8 @@ export function buildSummary(s: Scenario, a: Analysis, market: OwnerMarket | nul
     ["Contract", `${MARKET.ticker}: ${MARKET.threshold}`], ["Modeled side", "NO (pays $1 per contract if the YES condition is false), multiplier 1"],
     ["Price used", `${usd(s.price, 2)} per contract, ${a.priceSource === "live" ? "from an order-book snapshot (not guaranteed)" : "ILLUSTRATIVE input, not a verified executable price"}`],
     ["Fee rule", `round_up(M x ${FEE_COEF} x contracts x price x (1 - price)); fee + position cost rounded up to $0.0001. M = ${a.feeMult} (${a.priceSource === "live" ? "published for the series" : "entered by user; confirm for this market"})`],
+    ["Early settlement", EARLY_SETTLEMENT],
+    ["Fee source", `${FEE_SOURCE.label}: ${FEE_SOURCE.url}`],
     ["Live market", market ? `${market.status}; ${market.marketStatus ?? "n/a"} as of ${market.fetchedAt}` : "Not loaded"],
   ] });
   const m = a.manual!;
