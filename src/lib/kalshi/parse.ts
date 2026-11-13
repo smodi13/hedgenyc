@@ -109,3 +109,16 @@ export function parseOrderbook(json: unknown): ParsedBook | null {
 
 /** Only an "active" market can have a live book; everything else is a historical reference. */
 export const isActive = (status: string) => status === "active";
+
+/**
+ * NO-side ask ladder from the order book. A resting YES bid at b is an offer to sell NO at 1 - b,
+ * so buying NO lifts YES bids. Sizes are floored to whole contracts. Null on malformed input.
+ */
+export function parseNoAskLadder(json: unknown): { price: number; size: number }[] | null {
+  const r = BookSchema.safeParse(json);
+  if (!r.success) return null;
+  return r.data.orderbook_fp.yes_dollars
+    .map(([b, q]) => ({ price: round4(1 - b), size: Math.floor(q) }))
+    .filter((l) => l.size >= 1 && l.price > 0 && l.price < 1)
+    .sort((a, b) => a.price - b.price);
+}

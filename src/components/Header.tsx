@@ -51,7 +51,9 @@ function useActiveChapter(enabled: boolean) {
 }
 
 export function Header() {
-  const home = usePathname() === "/";
+  const path = usePathname();
+  const home = path === "/";
+  const owner = path.startsWith("/owner-lab");
   const active = useActiveChapter(home);
   const activeGroup = CHAPTERS.find((c) => c.id === active)?.group ?? "";
   const [scrolled, setScrolled] = useState(false);
@@ -100,7 +102,8 @@ export function Header() {
           <Link href="/" className="font-mono text-[0.8rem] font-medium tracking-[0.3em] text-chalk" aria-label="HEDGE / NYC home">
             HEDGE<span className="text-copper"> / </span>NYC
           </Link>
-          <nav aria-label="Primary" className="hidden lg:block">
+          {owner && <Link href="/" className="font-mono text-[0.68rem] uppercase tracking-[0.16em] text-steel hover:text-chalk">Research site</Link>}
+          {!owner && <nav aria-label="Primary" className="hidden lg:block">
             <ul className="flex items-center gap-1">
               {NAV.map((n) => {
                 const on = home && activeGroup === GROUP_OF_HREF[n.href.slice(2)];
@@ -114,10 +117,10 @@ export function Header() {
                 );
               })}
             </ul>
-          </nav>
-          <button ref={btnRef} type="button" className="p-2 text-chalk lg:hidden" aria-expanded={open} aria-controls="mobile-menu" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen((v) => !v)}>
+          </nav>}
+          {!owner && <button ref={btnRef} type="button" className="p-2 text-chalk lg:hidden" aria-expanded={open} aria-controls="mobile-menu" aria-label={open ? "Close menu" : "Open menu"} onClick={() => setOpen((v) => !v)}>
             {open ? <X className="size-6" /> : <Menu className="size-6" />}
-          </button>
+          </button>}
         </div>
         <div className="border-t border-line/60 bg-ink/60 text-center">
           <p className="mx-auto max-w-[1320px] px-5 py-1 font-mono text-[0.58rem] uppercase tracking-[0.08em] text-steel sm:px-8 sm:text-left sm:text-[0.62rem] sm:tracking-[0.14em]">
@@ -126,7 +129,7 @@ export function Header() {
         </div>
         <motion.div aria-hidden style={{ scaleX: progress }} className="absolute inset-x-0 bottom-0 h-px origin-left bg-mint" />
       </header>
-      {open && (
+      {open && !owner && (
         <div ref={menuRef} id="mobile-menu" role="dialog" aria-modal="true" aria-label="Site menu" className="fixed inset-0 z-40 bg-ink px-6 pt-32 lg:hidden" data-lenis-prevent>
           <ul className="space-y-1">
             {NAV.map((n, i) => (

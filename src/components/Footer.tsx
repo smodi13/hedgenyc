@@ -1,6 +1,11 @@
+"use client";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 
 export function Footer() {
+  if (usePathname().startsWith("/owner-lab")) {
+    return <footer className="border-t border-line bg-navy px-5 py-6 text-center font-mono text-[0.62rem] uppercase tracking-[0.16em] text-steel">Independent research, not affiliated with Kalshi · No trading functionality · Hypothetical outcomes only</footer>;
+  }
   return (
     <footer className="relative border-t border-line bg-navy">
       <div className="mx-auto grid max-w-[1320px] gap-10 px-5 py-16 sm:px-8 md:grid-cols-12">
@@ -11,6 +16,7 @@ export function Footer() {
         <ul className="space-y-2 font-mono text-[0.7rem] uppercase tracking-[0.16em] text-steel md:col-span-3">
           <li><Link className="hover:text-mint" href="/#screen">Business screen</Link></li>
           <li><Link className="hover:text-mint" href="/#lab">Hedge lab</Link></li>
+          <li><Link className="hover:text-mint" href="/owner-lab">Owner lab calculator</Link></li>
           <li><Link className="hover:text-mint" href="/#evidence">Evidence &amp; downloads</Link></li>
           <li><a className="hover:text-mint" target="_blank" rel="noopener noreferrer" href="https://kalshi.com/hedging">Official Kalshi hedging page<span className="sr-only"> (opens in a new tab)</span></a></li>
         </ul>

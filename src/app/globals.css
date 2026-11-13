@@ -113,3 +113,28 @@ details > summary::-webkit-details-marker { display: none; }
 @media (min-width: 768px) { .bignum::before { font-size: 4.5rem; } .bignum-lg::before { font-size: 6rem; } }
 
 @media (max-width: 767px) { .g-streets, .g-soft { display: none; } body::after { display: none; } }
+
+/* ---------- Owner Lab ---------- */
+.glow { overflow: hidden; }
+@media (hover: hover) and (pointer: fine) {
+  .glow::before { content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0; transition: opacity 0.4s; background: radial-gradient(380px circle at var(--mx, 50%) var(--my, 50%), rgba(132, 229, 208, 0.09), transparent 60%); }
+  .glow:hover::before { opacity: 1; }
+  .lift { transition: transform 0.35s var(--ease-out-expo), border-color 0.35s; }
+  .lift:hover { transform: translateY(-3px); border-color: rgba(132, 229, 208, 0.4); }
+}
+.chart-path { transition: d 0.3s var(--ease-out-expo); }
+.bar-fill { transition: width 0.45s var(--ease-out-expo); }
+@media (prefers-reduced-motion: reduce) {
+  .chart-path, .bar-fill, .lift, .glow::before { transition: none !important; }
+  .fade-up { animation: none; }
+  .js [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+.print-only { display: none; }
+@media print {
+  html, body { background: #fff !important; color: #000 !important; }
+  body::after, header, footer, .curtain, .no-print { display: none !important; }
+  .print-only { display: block; }
+  .print-only h1, .print-only h2 { color: #000; }
+  .print-only .sec { break-inside: avoid; }
+  main { padding: 0 !important; }
+}
